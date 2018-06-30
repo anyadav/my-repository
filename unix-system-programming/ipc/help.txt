@@ -1,0 +1,47 @@
+=============================================================
+make changes in existing branch like add new files, directory
+=============================================================
+
+mkdir myproject
+cd myproject
+git init
+git clone https://github.com/anyadav/unix-system-programming
+
+mkdir ipc //this is inside myproject
+write your ipc programs, e.g. my files process.c  semaop.c  semaphore.c  shmclient.c  shmem.c  shmserver.c inside ipc
+
+from myproject
+git add ipc/*
+git commit -m "comment related to changes"
+git push -u origin master
+enter the uid/password when prompted
+
+**************************************************************
+
+
+…or create a new repository on the command line
+
+echo "# lsp" >> README.md
+git init
+git add README.md
+git commit -m "first commit"
+git remote add origin https://github.com/anyadav/lsp.git
+git push -u origin master
+…or push an existing repository from the command line
+
+git remote add origin https://github.com/anyadav/lsp.git
+git push -u origin master
+…or import code from another repository
+You can initialize this repository with code from a Subversion, Mercurial, or TFS project.
+
+Import code
+
+
+if you want to see what that origin which already exists is, you can do a 
+
+$ git remote -v 
+
+
+If you think this is there by some error, you can update it like so:
+
+$ git remote set-url origin git@github.com:ppreyer/first_app.git
