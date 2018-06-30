@@ -1,55 +1,50 @@
-#include<stdio.h>
+#include <stdio.h>
 
-struct amar
+int main(int argc, char *argv[])
 {
-long double ln;
-char ch;
-long ln1;
-short int si;
-int a;
-};
-struct amar an;
+    int numbers[4] = {0}; //initializing by single entry will initialize all elements by zero - expected 
+    char name[4] = {'a'};//initialize only 1st entry to 'a' remaining to 0 for char array
+
+    
+/*showing all entryies are initialized by zero */
+    printf("numbers: %d %d %d %d\n", numbers[0], numbers[1], numbers[2], numbers[3]);
+
+
+/*showing 1st eentry is initialized by 'a', remaining are initialized by 0*/
+    printf("name each: %c %c %c %c\n", name[0], name[1], name[2], name[3]);
+    printf("name each: %c %d %d %d\n", name[0], name[1], name[2], name[3]);
 
 
 
+/*printing full array as string */
+    printf("name: %s\n", name);
+
+/*set indivisual entries */
+    numbers[0] = 1;
+    numbers[1] = 2;
+    numbers[2] = 3;
+    numbers[3] = 4;
+
+/*set indivisual entries */
+    name[0] = 'Z';
+    name[1] = 'e';
+    name[2] = 'd';
+    name[3] = '\0';
+
+/*print array after initializing */
+    printf("numbers: %d %d %d %d\n", numbers[0], numbers[1], numbers[2], numbers[3]);
+    printf("name each: %c %c %c %c\n", name[0], name[1], name[2], name[3]);
 
 
-int main()
-{
-int *p;
-int i;
-int a[5]={1,2,3,4,5};
-p=a;
-for(i=0;i<5;i++)
-{
-printf("%d %d %d %d %d\n",a[i],*p,*(a+i),*(&a[0] +i),p[0]);
-p++;
-p--;
-printf("\n%d\n",*p);
-p++;
+/*print array as string */
+    printf("name: %s\n", name);
+
+
+/* initialize pointer by string and print it as array, shows string and char arrays are same*/
+    char *another = "Zed";
+
+    printf("another: %s\n", another);
+    printf("another each: %c %c %c %c\n", another[0], another[1], another[2], another[3]);
+
+    return 0;
 }
-
-an.a =5;
-an.ch = 'a';
-an.ln=1234567;
-an.si =1;
-
-
-printf("long: %d\n",sizeof(long));
-printf("int: %d\n",sizeof(int));
-printf("char: %d\n",sizeof(char));
-printf("short: %d\n",sizeof(short));
-printf("long double: %d\n",sizeof(long double));
-printf("\n size of struct: %d\n",sizeof(an));
-/*
-for(i=4;i>=0;i--)
-{
-
-printf("%d %d %d %d\n",a[i],*p,*(a+i),*(&a[0] +i));
-p--;
-}
-*/
-return 0;
-
-}
-
