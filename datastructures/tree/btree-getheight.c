@@ -12,7 +12,11 @@ struct node *right;
 };
 
 
-//Allocate new node
+/* makenode function allocates a new node and fill the data passed
+   we can just pass the node data as input. This function will create 
+   memory for node fill the data in data part and set left,right childs
+   to point to null and returns the node
+*/
 
 struct node* makenode(int data)
 {
