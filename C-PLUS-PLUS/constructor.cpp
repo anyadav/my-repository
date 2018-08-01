@@ -41,7 +41,7 @@ int main(){
 Emp emp(30,1,10000); //here parametric contructor will be called autometically
 Emp emp1=emp; //copy constructor will be called here
 Emp emp2; //normal default constructor will be called here
-emp2=emp;
+emp2=emp; //Here it will not call copy constructor, instead assignment operator will be callled
 
 
 emp.getEmpDetails();
