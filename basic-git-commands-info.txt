@@ -1,3 +1,11 @@
+Clone/Download the complete repository:
+=======================================
+cd to-loc-where-you-want-to-copy
+git init
+git clone https://github.com/anyadav/my-repository.git   //This will clone complete my-repositiory to local system
+
+
+
 For new addition of file under a branch:
 ========================================
 cd to the rspective dir
