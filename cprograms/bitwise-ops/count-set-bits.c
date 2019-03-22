@@ -12,7 +12,7 @@ if(a==0)return 0;
 else if(a&1)count++;
 a=a>>1;
 }while(a);
-printf("No one set bits: %d\n",count);
+printf("No. of set bits: %d\n",count);
 
 return 0;
 }
