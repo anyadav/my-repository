@@ -59,7 +59,8 @@ def get_existing_job_ids():
 
 
 def push_records(records):
-    """Create records in Airtable in batches of 10 (API limit per request is 10 for typecast safety)."""
+    """Create records in Airtable in batches of 10. If a batch fails, retry one-by-one
+    so a single bad record doesn't block the rest of the batch."""
     for i in range(0, len(records), 10):
         batch = records[i : i + 10]
         resp = requests.post(
@@ -69,10 +70,20 @@ def push_records(records):
             timeout=30,
         )
         if resp.status_code >= 300:
-            print(f"Airtable error: {resp.status_code} {resp.text}", file=sys.stderr)
+            print(f"Batch failed ({resp.status_code}): {resp.text[:300]} — retrying individually")
+            for rec in batch:
+                r = requests.post(
+                    AIRTABLE_API,
+                    headers=HEADERS,
+                    json={"records": [rec], "typecast": True},
+                    timeout=30,
+                )
+                if r.status_code >= 300:
+                    print(f"Skipped 1 record: {r.status_code} {r.text[:200]}", file=sys.stderr)
+                time.sleep(0.25)
         else:
             print(f"Pushed {len(batch)} records")
-        time.sleep(0.3)  # stay well under Airtable's 5 req/sec limit
+        time.sleep(0.3)
 
 
 def main():
@@ -118,10 +129,12 @@ def main():
                 "Status": "Pending Review",
                 "Source Job ID": job_id,
             }
-            # Posted Date / Date Scraped as ISO strings if available
+            # Posted Date as ISO string if available (pandas may represent missing as NaN or NaT)
             date_posted = row.get("date_posted")
-            if date_posted and str(date_posted) != "NaT":
-                fields["Posted Date"] = str(date_posted)[:10]
+            if date_posted is not None:
+                date_str = str(date_posted)
+                if date_str not in ("NaT", "nan", "None", ""):
+                    fields["Posted Date"] = date_str[:10]
 
             all_new_records.append({"fields": fields})
 
