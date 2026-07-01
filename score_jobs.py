@@ -121,14 +121,21 @@ def score_job(title, company, location, description):
     )
     body = {
         "model": "claude-sonnet-4-6",
-        "max_tokens": 500,
+        "max_tokens": 1024,
         "messages": [{"role": "user", "content": prompt}],
     }
     resp = requests.post(ANTHROPIC_API, headers=ANTHROPIC_HEADERS, json=body, timeout=60)
-    resp.raise_for_status()
+    if resp.status_code >= 300:
+        print(f"Anthropic API error: {resp.status_code} {resp.text[:500]}", file=sys.stderr)
+        return None
     data = resp.json()
     text = "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
-    text = text.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
+    text = text.strip()
+    if text.startswith("```"):
+        text = text.split("```")[1]
+        if text.startswith("json"):
+            text = text[4:]
+    text = text.strip()
     try:
         return json.loads(text)
     except json.JSONDecodeError:
