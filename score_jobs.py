@@ -1,7 +1,7 @@
 """
 Scores Pending Review jobs in Airtable against Amar's resume using Google Gemini (free tier).
-Writes back: Match Score, AI Reasoning, Status, Hiring Manager Name/Email/LinkedIn (if present in posting).
-If zero jobs score >=90, falls back to marking top 5 as Shortlisted.
+Caps scoring at MAX_SCORE_PER_RUN per run to stay within Gemini free tier limits.
+Adds exponential backoff on 429 rate limit errors.
 
 Requires env vars: AIRTABLE_TOKEN, AIRTABLE_BASE_ID, AIRTABLE_TABLE_ID, GEMINI_API_KEY
 """
@@ -27,6 +27,7 @@ GEMINI_API = (
     f"gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
 )
 MATCH_THRESHOLD = 90
+MAX_SCORE_PER_RUN = 10   # hard cap — stays within Gemini free tier per run
 
 RESUME_TEXT = """
 AMAR NATH YADAV
@@ -93,11 +94,15 @@ Respond with STRICT JSON only — no markdown fences, no preamble, no explanatio
 {{"match_score": <int 0-100>, "reasoning": "<2-3 sentence justification>", "hiring_manager_name": null, "hiring_manager_email": null, "hiring_manager_linkedin": null}}"""
 
 
-def get_pending_jobs():
+def get_pending_jobs(limit):
+    """Fetch up to `limit` Pending Review records from Airtable."""
     records = []
     offset = None
-    while True:
-        params = {"filterByFormula": "{Status} = 'Pending Review'"}
+    while len(records) < limit:
+        params = {
+            "filterByFormula": "{Status} = 'Pending Review'",
+            "pageSize": min(100, limit - len(records)),
+        }
         if offset:
             params["offset"] = offset
         resp = requests.get(AIRTABLE_API, headers=AT_HEADERS, params=params, timeout=30)
@@ -107,10 +112,11 @@ def get_pending_jobs():
         offset = data.get("offset")
         if not offset:
             break
-    return records
+    return records[:limit]
 
 
 def score_job(title, company, location, description):
+    """Call Gemini with exponential backoff on 429 rate limit errors."""
     prompt = SCORING_PROMPT.format(
         resume=RESUME_TEXT,
         title=title,
@@ -122,27 +128,37 @@ def score_job(title, company, location, description):
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"temperature": 0.1, "maxOutputTokens": 512},
     }
-    resp = requests.post(GEMINI_API, json=body, timeout=60)
-    if resp.status_code >= 300:
-        print(f"Gemini API error: {resp.status_code} {resp.text[:300]}", file=sys.stderr)
-        return None
-    data = resp.json()
-    try:
-        text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-    except (KeyError, IndexError):
-        print(f"Unexpected Gemini response structure: {str(data)[:300]}", file=sys.stderr)
-        return None
-    # Strip markdown fences if Gemini adds them despite instructions
-    if text.startswith("```"):
-        text = text.split("```")[1]
-        if text.startswith("json"):
-            text = text[4:]
-    text = text.strip()
-    try:
-        return json.loads(text)
-    except json.JSONDecodeError:
-        print(f"Failed to parse Gemini output: {text[:300]}", file=sys.stderr)
-        return None
+
+    wait = 5  # initial backoff seconds
+    for attempt in range(4):  # max 4 attempts per job
+        resp = requests.post(GEMINI_API, json=body, timeout=60)
+        if resp.status_code == 429:
+            print(f"  429 rate limit — waiting {wait}s before retry {attempt + 1}/3 ...")
+            time.sleep(wait)
+            wait *= 2  # exponential: 5 → 10 → 20 → 40
+            continue
+        if resp.status_code >= 300:
+            print(f"Gemini API error: {resp.status_code} {resp.text[:200]}", file=sys.stderr)
+            return None
+        data = resp.json()
+        try:
+            text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+        except (KeyError, IndexError):
+            print(f"Unexpected Gemini response: {str(data)[:200]}", file=sys.stderr)
+            return None
+        if text.startswith("```"):
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+        text = text.strip()
+        try:
+            return json.loads(text)
+        except json.JSONDecodeError:
+            print(f"Failed to parse Gemini output: {text[:200]}", file=sys.stderr)
+            return None
+
+    print("  Max retries reached — skipping this job", file=sys.stderr)
+    return None
 
 
 def update_record(record_id, fields):
@@ -157,9 +173,9 @@ def update_record(record_id, fields):
 
 
 def main():
-    print("=== score_jobs.py starting (Gemini free tier) ===")
-    jobs = get_pending_jobs()
-    print(f"Found {len(jobs)} jobs with Status = 'Pending Review'")
+    print(f"=== score_jobs.py starting (cap: {MAX_SCORE_PER_RUN} per run) ===")
+    jobs = get_pending_jobs(MAX_SCORE_PER_RUN)
+    print(f"Fetched {len(jobs)} jobs to score this run")
 
     if not jobs:
         print("Nothing to score — exiting.")
@@ -176,7 +192,7 @@ def main():
 
         print(f"Scoring: {title} @ {company} ...")
         result = score_job(title, company, location, description)
-        time.sleep(0.3)  # Gemini free tier: 15 RPM limit — 0.3s gap is safe
+        time.sleep(5)  # 5s gap = max 12 RPM, safely under Gemini free tier 15 RPM limit
 
         if not result:
             print("  -> Skipped (no result from model)")
@@ -201,7 +217,7 @@ def main():
         scored.append((rec["id"], score))
 
     shortlisted_count = sum(1 for _, s in scored if s >= MATCH_THRESHOLD)
-    print(f"Shortlisted: {shortlisted_count} / {len(scored)} scored")
+    print(f"Shortlisted: {shortlisted_count} / {len(scored)} scored this run")
 
     if shortlisted_count == 0 and scored:
         print("No jobs met 90% threshold — applying top-5 fallback")
