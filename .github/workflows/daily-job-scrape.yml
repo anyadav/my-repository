@@ -2,9 +2,9 @@ name: Daily LinkedIn Job Scrape
 
 on:
   schedule:
-    # 03:00 UTC = 08:30 IST, every day
-    - cron: "0 3 * * *"
-  workflow_dispatch: {}  # lets you click "Run workflow" manually in the Actions tab
+    # 23:00 UTC = 07:00 TPE (UTC+8), every day
+    - cron: "0 23 * * *"
+  workflow_dispatch: {}
 
 jobs:
   scrape:
