@@ -155,28 +155,38 @@ def update_record(record_id, fields):
 
 
 def main():
+    print("=== score_jobs.py starting ===")
     jobs = get_pending_jobs()
-    print(f"Found {len(jobs)} jobs pending scoring")
+    print(f"Found {len(jobs)} jobs with Status = 'Pending Review'")
 
-    scored = []  # (record_id, score, fields_dict)
+    if not jobs:
+        print("Nothing to score — exiting.")
+        return
+
+    scored = []
 
     for rec in jobs:
         f = rec["fields"]
-        title = f.get("Job Title", "")
-        company = f.get("Company", "")
+        title = f.get("Job Title", "(no title)")
+        company = f.get("Company", "(no company)")
         location = f.get("Location", "")
         description = f.get("Job Description Raw", "")
 
+        print(f"Scoring: {title} @ {company} ...")
         result = score_job(title, company, location, description)
-        time.sleep(0.5)  # gentle on rate limits
+        time.sleep(0.5)
 
         if not result:
+            print(f"  -> Skipped (no result from model)")
             continue
 
         score = int(result.get("match_score", 0))
+        print(f"  -> Score: {score}")
+
         update_fields = {
             "Match Score": score,
             "AI Reasoning": result.get("reasoning", ""),
+            "Status": "Shortlisted" if score >= MATCH_THRESHOLD else "Skipped",
         }
         if result.get("hiring_manager_name"):
             update_fields["Hiring Manager Name"] = result["hiring_manager_name"]
@@ -185,21 +195,19 @@ def main():
         if result.get("hiring_manager_linkedin"):
             update_fields["Hiring Manager LinkedIn"] = result["hiring_manager_linkedin"]
 
-        update_fields["Status"] = "Shortlisted" if score >= MATCH_THRESHOLD else "Reviewed - Below Threshold"
-
         update_record(rec["id"], update_fields)
         scored.append((rec["id"], score))
-        print(f"Scored: {title} @ {company} -> {score}")
 
-    # Fallback: if nobody crossed the threshold, shortlist the top 5 anyway
     shortlisted_count = sum(1 for _, s in scored if s >= MATCH_THRESHOLD)
+    print(f"Shortlisted: {shortlisted_count} / {len(scored)} scored")
+
     if shortlisted_count == 0 and scored:
         print("No jobs met 90% threshold — applying top-5 fallback")
         top5 = sorted(scored, key=lambda x: x[1], reverse=True)[:5]
-        for record_id, score in top5:
-            update_record(record_id, {"Status": "Shortlisted (Top 5 Fallback)"})
+        for record_id, _ in top5:
+            update_record(record_id, {"Status": "Shortlisted"})
 
-    print("Scoring complete.")
+    print("=== score_jobs.py complete ===")
 
 
 if __name__ == "__main__":
