@@ -1,6 +1,9 @@
 name: Daily LinkedIn Job Scrape
 
 on:
+  push:
+    branches:
+      - claude-job-agent
   schedule:
     # 23:00 UTC = 07:00 TPE (UTC+8), every day
     - cron: "0 23 * * *"
