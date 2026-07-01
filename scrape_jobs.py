@@ -23,8 +23,9 @@ SEARCH_TERMS = [
     "Engineering Manager",
 ]
 LOCATION = "Bengaluru, Karnataka, India"
-RESULTS_PER_TERM = 40
-HOURS_OLD = 168  # 7 days
+RESULTS_PER_TERM = 5      # 6 terms x 5 = 30 raw max; deduped down further
+HOURS_OLD = 48            # today + yesterday only
+MAX_NEW_PER_RUN = 10      # hard cap on new jobs pushed per daily run
 
 AIRTABLE_TOKEN = os.environ["AIRTABLE_TOKEN"]
 AIRTABLE_BASE_ID = os.environ["AIRTABLE_BASE_ID"]
@@ -137,6 +138,11 @@ def main():
                     fields["Posted Date"] = date_str[:10]
 
             all_new_records.append({"fields": fields})
+
+    # Apply daily cap before pushing
+    if len(all_new_records) > MAX_NEW_PER_RUN:
+        print(f"Capping {len(all_new_records)} new jobs to {MAX_NEW_PER_RUN} per daily run limit")
+        all_new_records = all_new_records[:MAX_NEW_PER_RUN]
 
     print(f"Total new jobs to push: {len(all_new_records)}")
     if all_new_records:
