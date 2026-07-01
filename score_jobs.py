@@ -1,9 +1,9 @@
 """
-Scores Pending Review jobs in Airtable against Amar's resume using the Claude API.
+Scores Pending Review jobs in Airtable against Amar's resume using Google Gemini (free tier).
 Writes back: Match Score, AI Reasoning, Status, Hiring Manager Name/Email/LinkedIn (if present in posting).
-If zero jobs score >=90, falls back to marking the top 5 as Shortlisted regardless of score.
+If zero jobs score >=90, falls back to marking top 5 as Shortlisted.
 
-Requires env vars: AIRTABLE_TOKEN, AIRTABLE_BASE_ID, AIRTABLE_TABLE_ID, ANTHROPIC_API_KEY
+Requires env vars: AIRTABLE_TOKEN, AIRTABLE_BASE_ID, AIRTABLE_TABLE_ID, GEMINI_API_KEY
 """
 
 import os
@@ -15,19 +15,17 @@ import requests
 AIRTABLE_TOKEN = os.environ["AIRTABLE_TOKEN"]
 AIRTABLE_BASE_ID = os.environ["AIRTABLE_BASE_ID"]
 AIRTABLE_TABLE_ID = os.environ["AIRTABLE_TABLE_ID"]
-ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
+GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
 
 AIRTABLE_API = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_ID}"
 AT_HEADERS = {
     "Authorization": f"Bearer {AIRTABLE_TOKEN}",
     "Content-Type": "application/json",
 }
-ANTHROPIC_API = "https://api.anthropic.com/v1/messages"
-ANTHROPIC_HEADERS = {
-    "x-api-key": ANTHROPIC_API_KEY,
-    "anthropic-version": "2023-06-01",
-    "content-type": "application/json",
-}
+GEMINI_API = (
+    f"https://generativelanguage.googleapis.com/v1beta/models/"
+    f"gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
+)
 MATCH_THRESHOLD = 90
 
 RESUME_TEXT = """
@@ -68,7 +66,7 @@ B.Tech - Computer Science & Engineering
 Post Graduate Diploma in Embedded Systems - CDAC Pune
 """
 
-SCORING_PROMPT = """You are scoring how well a job posting matches a candidate's resume for the purpose of a job search shortlist.
+SCORING_PROMPT = """You are scoring how well a job posting matches a candidate's resume for a job search shortlist.
 
 CANDIDATE RESUME:
 {resume}
@@ -80,18 +78,19 @@ Location: {location}
 Description:
 {description}
 
-Score the match from 0-100 based on: role title alignment (Delivery Manager / Program Manager / Delivery Head /
-Account Delivery Head / Engineering Manager), seniority fit (18+ years experience), domain overlap (enterprise
-IT services, managed services, global delivery, stakeholder/SLA governance), and location fit (Bangalore, India).
+Score the match from 0-100 based on:
+- Role title alignment (Delivery Manager / Program Manager / Delivery Head / Account Delivery Head / Engineering Manager)
+- Seniority fit (18+ years experience)
+- Domain overlap (enterprise IT services, managed services, global delivery, stakeholder/SLA governance)
+- Location fit (Bangalore, India)
 
-Also extract, ONLY if explicitly present in the job description text (do not guess or invent):
+Also extract ONLY if explicitly present in the job description text (do not guess or invent):
 - hiring_manager_name
 - hiring_manager_email
 - hiring_manager_linkedin
 
-Respond with STRICT JSON only, no markdown fences, no preamble:
-{{"match_score": <int 0-100>, "reasoning": "<2-3 sentence justification>", "hiring_manager_name": "<string or null>", "hiring_manager_email": "<string or null>", "hiring_manager_linkedin": "<string or null>"}}
-"""
+Respond with STRICT JSON only — no markdown fences, no preamble, no explanation:
+{{"match_score": <int 0-100>, "reasoning": "<2-3 sentence justification>", "hiring_manager_name": null, "hiring_manager_email": null, "hiring_manager_linkedin": null}}"""
 
 
 def get_pending_jobs():
@@ -120,17 +119,20 @@ def score_job(title, company, location, description):
         description=(description or "")[:8000],
     )
     body = {
-        "model": "claude-sonnet-4-6",
-        "max_tokens": 1024,
-        "messages": [{"role": "user", "content": prompt}],
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {"temperature": 0.1, "maxOutputTokens": 512},
     }
-    resp = requests.post(ANTHROPIC_API, headers=ANTHROPIC_HEADERS, json=body, timeout=60)
+    resp = requests.post(GEMINI_API, json=body, timeout=60)
     if resp.status_code >= 300:
-        print(f"Anthropic API error: {resp.status_code} {resp.text[:500]}", file=sys.stderr)
+        print(f"Gemini API error: {resp.status_code} {resp.text[:300]}", file=sys.stderr)
         return None
     data = resp.json()
-    text = "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
-    text = text.strip()
+    try:
+        text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    except (KeyError, IndexError):
+        print(f"Unexpected Gemini response structure: {str(data)[:300]}", file=sys.stderr)
+        return None
+    # Strip markdown fences if Gemini adds them despite instructions
     if text.startswith("```"):
         text = text.split("```")[1]
         if text.startswith("json"):
@@ -139,7 +141,7 @@ def score_job(title, company, location, description):
     try:
         return json.loads(text)
     except json.JSONDecodeError:
-        print(f"Failed to parse model output: {text[:300]}", file=sys.stderr)
+        print(f"Failed to parse Gemini output: {text[:300]}", file=sys.stderr)
         return None
 
 
@@ -155,7 +157,7 @@ def update_record(record_id, fields):
 
 
 def main():
-    print("=== score_jobs.py starting ===")
+    print("=== score_jobs.py starting (Gemini free tier) ===")
     jobs = get_pending_jobs()
     print(f"Found {len(jobs)} jobs with Status = 'Pending Review'")
 
@@ -174,10 +176,10 @@ def main():
 
         print(f"Scoring: {title} @ {company} ...")
         result = score_job(title, company, location, description)
-        time.sleep(0.5)
+        time.sleep(0.3)  # Gemini free tier: 15 RPM limit — 0.3s gap is safe
 
         if not result:
-            print(f"  -> Skipped (no result from model)")
+            print("  -> Skipped (no result from model)")
             continue
 
         score = int(result.get("match_score", 0))
