@@ -1,0 +1,68 @@
+AMAR NATH YADAV
+Delivery Manager | Program Manager | Global Delivery | Account Growth | Agile Program Execution 
+Bangalore, India| +91 9739295982| amaryadav.9s@gmail.com | linkedin
+EXECUTIVE SUMMARY
+Senior Delivery Management professional with extensive IT industry experience, including significant years in Delivery Management, Program Governance, Managed Services, and Global Operations Leadership across APAC, EMEA, NAMER and LATEM regions. Proven expertise leading large-scale delivery programs, managed services operations, staff augmentation engagements, transition management, and cross-functional delivery execution for enterprise customers including Google and Oracle.
+Currently leading global delivery operations from customer(Google) location in Taiwan with strong expertise in stakeholder management, operational governance, delivery transformation, escalation management, KPI/SLA/SLO governance, and customer engagement. Demonstrated success managing distributed global teams, driving operational excellence, improving delivery efficiency, and ensuring governance compliance across complex enterprise environments.
+Experienced managing fixed-price, T&M, and managed services engagements with strong exposure to resource planning, delivery risk management, operational stabilization, vendor coordination, and executive reporting. Combines strategic delivery leadership with technical grounding in Embedded Systems, Android Platform Engineering, Unix System Programming, Automation Testing, and System Integration. Recognized for building high-performing global teams, driving customer satisfaction, and enabling seamless transition and ramp-up of strategic programs across multicultural, multi-geography delivery environments.
+CORE COMPETENCIES
+Delivery Management | Program Management | Account Delivery Management | Cross-Functional Leadership | Global Delivery Operations | Managed Services | Service Delivery Management | Staff Augmentation | Transition Management | Delivery Governance | Program Execution | Delivery Excellence | Escalation Management | Risk Mitigation | Resource Planning | KPI/SLA/SLO Governance | Operational Governance | MBR/QBR Management | Executive Reporting | Productivity Management | Process Optimization | Vendor Coordination | Operational Stabilization | Continuous Improvement | Stakeholder Management | Client Relationship Management | Global Team Management | Team Building & Mentoring | Conflict Resolution | Strategic Planning | Executive Stakeholder Engagement | Agile Delivery | QA Program Management | Automation Testing | Revenue & Contract Management | SOW Management
+LEADERSHIP HIGHLIGHTS
+Managed global delivery programs with distributed resources across APAC/JPAC, EMEA, NAMER and LATEM regions for managed service projects.
+Led large-scale staff augmentation engagements across multiple Statements of Work (SOWs) for enterprise clients.
+Executed managed-services, fixed-price, and T&M delivery engagements across India, Taiwan, USA, UK, Japan, Poland, and Australia.
+Achieved consistently high SLA compliance and customer satisfaction (CSAT) scores across key strategic engagements.
+Managed revenue operations including invoicing and collections coordination, collaborating with business and finance teams on SOW renewals and delivery planning.
+Successfully transitioned and stabilized enterprise programs from incumbent vendors with minimal operational disruption and zero service interruption.
+Conducted executive governance reviews including MBR/QBR sessions with customer leadership teams.
+Collaborated with business, finance, and presales teams on SOW renewals, delivery planning, resource ramp-up, and operational governance initiatives.
+Built strong customer relationships through extensive onsite leadership experience from customer offices in Taiwan.
+PROFESSIONAL EXPERIENCE
+Wipro Limited — Delivery Manager | Dec 2012 – Present | Taiwan / India
+Progressed through Technical Lead, Technical Manager, Project Manager, Program Manager, and Delivery Manager roles managing enterprise delivery programs for global customers including Google and Oracle.
+Directed global delivery programs across APAC, EMEA, and NAMER regions, leading distributed cross-functional teams and managing delivery risk and operational dependencies.
+Led staff augmentation engagements spanning multiple SOWs supporting enterprise delivery operations.
+Managed managed-services, fixed-price, and T&M delivery engagements across multiple international delivery locations.
+Established governance frameworks covering KPI/SLA/SLO tracking, delivery reporting, productivity metrics, and escalation management.
+Achieved strong SLA adherence and customer satisfaction (CSAT) outcomes across strategic enterprise programs.
+Managed revenue operations including invoicing coordination and collections tracking.
+Conducted executive governance reviews including MBR/QBR sessions with customer leadership stakeholders.
+Led transition and operational stabilization initiatives from incumbent vendors, ensuring seamless delivery continuity.
+Managed distributed teams across multiple time zones, handling delivery risks, operational dependencies, and stakeholder escalations.
+Collaborated with business, finance, and presales teams for SOW renewals, delivery planning, resource ramp-up, and governance initiatives.
+Improved operational efficiency through governance standardization, structured delivery monitoring, and process optimization.
+Key Programs Managed:
+ChromeOS Global Operations — As Transition Manager / Program Manager / Service Delivery Manager, led global operations supporting ChromeOS product lifecycle across APAC, EMEA, and NAMER; coordinated OEM/ODM partners, engineering, marketing, and operations stakeholders; established KPI/SLA/SLO governance, MBR/QBR reviews, and operational risk and escalation management.
+Google Pixel Hardware Testing Programs — As Project/Program Manager, managed global testing programs covering RF/OTA validation, carrier certification, software validation, and reliability testing; defined milestones, governance mechanisms, and reporting structures across engineering, QA, and customer teams.
+Google Home & Nest — As Transition Manager / Project Manager, led project transition, operational setup, team ramp-up, delivery tracking, and governance reporting cadence.
+Oracle Product Porting on IBM Platforms — As Technical Lead / Manager, managed cross-platform porting, integration, build management, and release lifecycle for the Oracle product ecosystem; led engineering leadership across multi-branch version control, release architecture, CI, risk mitigation frameworks, defect lifecycle triage, and stakeholder/cross-functional alignment.
+Sasken Technologies — Senior Engineer, System SoftwareFeb 2010 – Dec 2012 | India
+Worked on Android platform porting, Linux Test Project (LTP) integration, embedded systems development, and kernel debugging; managed Android bring-up, feature enablement, and kernel configuration for embedded platforms.
+Developed automation testing solutions using the Android Instrumentation Framework; supported platform validation, performance analysis, integration testing, and technical issue resolution in collaboration with QA and engineering teams.
+Mahathi Software — Software EngineerOct 2007 – Feb 2010 | India
+Contributed to NCR FastLane self-checkout terminal development, integration, and release management, including end-to-end build and deployment pipeline management.
+Performed requirement analysis and RFQ estimations for new feature requests and customer enhancements, coordinating with product support and engineering teams on integration and delivery.
+TECHNICAL SKILLS & TOOLS
+Programming & Systems: C/C++, Python, Unix System Programming, Multithreading, Linux Kernel Compilation, Cross Compilation
+Platforms & Testing: Android Platform Porting, Embedded Systems, Automation Testing, Android Instrumentation Framework, LTP Integration, Hudson CI / Continuous Integration
+Tools & Technologies: GNU Toolchain (GDB, GCC), Google Workspace, Test Tracker, Buganizer, VS Code, Snowflake, GitHub Copilot
+AI SKILLS 7 TOOLS
+AI & Productivity: GitHub-Copilot with VS2, Google Colab Python with Gemini, Generative AI, Prompt Engineering, Gemini, Notebook LM
+EDUCATION
+B.Tech – Computer Science & Engineering
+Post Graduate Diploma in Embedded Systems – CDAC Pune
+
+
+
+CERTIFICATES OF LEARNINGS
+
+Link: Claude 101 / Completed 06/2026
+Link: Google AI Professional Certificate / Completed 6/2026
+Link: Agentic AI and AI Agents: A Primer for Leaders
+Other Internal Certifications:
+Project Managed Certification Program( Internal to Wipro while I was in PM Role, Completed during 2018)
+This Certificate was awarded after completing 3-weeks of classroom based training and passing online assessment and then Panel Assessment 
+
+
+
+
