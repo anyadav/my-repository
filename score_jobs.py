@@ -47,10 +47,11 @@ DEFAULT_KEYWORDS = {
         "Service Delivery Manager", "Senior Delivery Manager",
     ],
     "skills": [
-        "delivery", "program management", "SLA", "KPI", "SLO", "governance",
-        "managed services", "stakeholder", "MBR", "QBR", "cross-functional",
-        "staff augmentation", "global delivery", "client", "operations",
-        "agile", "escalation", "transition",
+        "Managed Services", "Service Delivery Management", "Delivery Governance",
+        "Stakeholder Management", "Escalation Management", "Transition Management",
+        "Program Execution", "Continuous Improvement", "Risk Mitigation",
+        "Resource Planning", "Process Optimization", "Client Relationship Management",
+        "Agile Delivery", "Executive Reporting", "Vendor Coordination",
     ],
     "seniority": "leadership",
 }
@@ -85,12 +86,17 @@ def title_score(job_title, target_titles):
     return best
 
 
+KEYWORD_TARGET_HITS = 8  # phrase-skills rarely all appear verbatim; 8 phrase hits = strong JD
+
+
 def keyword_score(job_text, skills):
     jt = norm(job_text)
     if not skills:
-        return 0.0
+        return 0.0, []
     hits = [s for s in skills if norm(s) in jt]
-    return len(hits) / len(skills), hits
+    # Capped denominator: score saturates at KEYWORD_TARGET_HITS so a large
+    # skill library widens coverage without diluting every job's score.
+    return min(1.0, len(hits) / KEYWORD_TARGET_HITS), hits
 
 
 def seniority_score(job_text, target_level):
@@ -118,7 +124,7 @@ def score_job(fields, kw):
     pct = round((t * TITLE_WEIGHT + k * KEYWORD_WEIGHT + s * SENIORITY_WEIGHT) * 100, 1)
     reasoning = (
         f"Local match (no LLM): title {round(t*100)}%, "
-        f"skills {round(k*100)}% ({len(hits)}/{len(kw['skills'])}: {', '.join(hits[:8])}), "
+        f"skills {round(k*100)}% ({len(hits)} hits: {', '.join(hits[:8])}), "
         f"seniority fit {round(s*100)}%."
     )
     return pct, reasoning
