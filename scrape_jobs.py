@@ -1,5 +1,5 @@
 """
-scrape_jobs.py (v2) — LinkedIn job scraper for Amar's Job Hunt Dashboard.
+scrape_jobs.py (v3) — Naukri job scraper for Amar's Job Hunt Dashboard.
 
 Changes vs v1:
 1. CANONICAL JOB URLS — every job URL is normalized to
@@ -24,6 +24,7 @@ import requests
 from jobspy import scrape_jobs
 
 # ---- Config ----
+SITES = ["naukri"]   # switch back to ["linkedin"] or use both: ["naukri", "linkedin"]
 SEARCH_TERMS = [
     "Delivery Manager",
     "Program Manager",
@@ -67,12 +68,17 @@ LINKEDIN_ID_RE = re.compile(r"(?:jobs/view/|currentJobId=|jobPosting:|li-)(\d{6,
 ANY_LONG_NUM_RE = re.compile(r"(\d{9,})")
 
 
-def canonical_linkedin_url(job_url: str, job_id: str) -> str | None:
+def canonical_job_url(job_url: str, job_id: str) -> str | None:
     """
-    Return a direct, canonical LinkedIn posting URL, or None if impossible.
-    Handles: tracking params, search-page URLs with currentJobId, jobspy ids
-    like 'li-4123456789'.
+    Return a direct posting URL, or None if impossible.
+    Naukri: URLs from JobSpy are already direct job-listing pages —
+    strip tracking query params only.
+    LinkedIn: normalize to /jobs/view/<id>/ (handles tracking params,
+    search-page currentJobId URLs, jobspy 'li-<id>' ids).
     """
+    if job_url and "naukri.com" in job_url:
+        clean = job_url.split("?")[0]
+        return clean if "/job-listings" in clean or "/jobs-" in clean or "naukri.com/" in clean else None
     for source in (job_url or "", job_id or ""):
         m = LINKEDIN_ID_RE.search(source)
         if m:
@@ -151,17 +157,18 @@ def main():
     for term in SEARCH_TERMS:
         if len(all_new_records) >= MAX_NEW_PER_RUN:
             break
-        print(f"Scraping LinkedIn for: {term}")
+        print(f"Scraping {'+'.join(SITES)} for: {term}")
         try:
             jobs = scrape_jobs(
-                site_name=["linkedin"],
+                site_name=SITES,
                 search_term=term,
                 location=LOCATION,
                 results_wanted=RESULTS_PER_TERM,
                 hours_old=HOURS_OLD,
+                country_indeed="india",
+                # LinkedIn-only params, ignored by Naukri, kept for easy switch-back:
                 linkedin_fetch_description=True,
                 easy_apply=True,
-                country_indeed="india",
             )
         except Exception as e:
             print(f"Error scraping '{term}': {e}", file=sys.stderr)
@@ -180,7 +187,7 @@ def main():
             seen_ids.add(raw_id)
 
             # --- URL FIX: only store jobs with a verified direct posting link ---
-            clean_url = canonical_linkedin_url(str(row.get("job_url") or ""), raw_id)
+            clean_url = canonical_job_url(str(row.get("job_url") or ""), raw_id)
             if not clean_url:
                 skipped_no_url += 1
                 continue
@@ -196,7 +203,7 @@ def main():
                 "Company": str(row.get("company") or ""),
                 "Job URL": clean_url,
                 "Location": str(row.get("location") or ""),
-                "Easy Apply": bool(row.get("easy_apply")) if "easy_apply" in row else True,
+                "Easy Apply": bool(row.get("easy_apply")) if row.get("easy_apply") == row.get("easy_apply") and row.get("easy_apply") is not None else False,  # Naukri: no Easy Apply concept; False unless source says otherwise
                 "Job Description Raw": str(row.get("description") or "")[:90000],
                 "Status": "Pending Review",
                 "Source Job ID": raw_id,
