@@ -50,7 +50,7 @@
 <header>
   <div>
     <h1>Job Match Dashboard</h1>
-    <div class="sub">Senior Delivery Manager / Program Manager · Bangalore · Scored locally, zero LLM</div>
+    <div class="sub">Senior Delivery Manager / Program Manager · Bangalore · Naukri · Scored locally, zero LLM</div>
   </div>
   <div class="sub">Threshold 85% · <span id="updated">not loaded</span></div>
 </header>
@@ -91,12 +91,12 @@
 
 <div class="footer-note">
   <strong>Direct-link guarantee:</strong> every "Apply" button is normalized to
-  <code>linkedin.com/jobs/view/&lt;id&gt;/</code> — tracking parameters and search-page redirects are
-  stripped in this page even if a bad URL slips into Airtable, so clicking always lands on the actual posting.<br><br>
+  a direct posting link — Naukri URLs get tracking parameters stripped, LinkedIn URLs are normalized to
+  <code>linkedin.com/jobs/view/&lt;id&gt;/</code> — so clicking always lands on the actual posting.<br><br>
   <strong>Cowork automation:</strong> each row carries <code>data-job-url</code>, <code>data-easy-apply</code>,
   <code>data-match-pct</code>, <code>data-company</code>, <code>data-title</code>. Suggested Cowork instruction:
-  "In the table [data-cowork-role=job-application-queue], for each row with data-easy-apply=true, open data-job-url,
-  apply via LinkedIn Easy Apply using resume 1_AmarNathYadav_ResumeBLR.docx (current CTC ₹24,00,000, expected ₹40,00,000,
+  "In the table [data-cowork-role=job-application-queue], for each row, open data-job-url and apply on the
+  portal (Naukri quick apply / LinkedIn Easy Apply) using resume 1_AmarNathYadav_ResumeBLR.docx (current CTC ₹24,00,000, expected ₹40,00,000,
   notice period as per profile), and pause for my confirmation before each final Submit."
   This dashboard only queues — it never submits anything itself.
 </div>
@@ -108,6 +108,7 @@ let JOBS = [];  // in-memory only
 
 // Same canonicalization as scrape_jobs.py — defensive second layer.
 function canonicalUrl(url, sourceId) {
+  if (url && url.includes("naukri.com")) return url.split("?")[0];  // Naukri: already direct
   const idRe = /(?:jobs\/view\/|currentJobId=|jobPosting:|li-)(\d{6,})/;
   for (const s of [url || "", sourceId || ""]) {
     const m = s.match(idRe);
