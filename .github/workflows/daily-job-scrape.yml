@@ -1,12 +1,13 @@
 name: Daily LinkedIn Job Scrape
 
 on:
-  push:
-    branches:
-      - master
   schedule:
-    - cron: "30 22 * * *"
+    # 23:00 UTC = 04:30 IST next day, every day
+    - cron: "0 23 * * *"
   workflow_dispatch: {}
+  # NOTE: 'push' trigger removed — v1 re-ran the full scrape (wiping the
+  # Airtable table) on every commit to the branch. Use the manual
+  # "Run workflow" button when you want an on-demand run.
 
 jobs:
   scrape:
@@ -14,6 +15,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          ref: claude-job-agent
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -21,8 +24,8 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: |
-          pip install python-jobspy requests
+        run: pip install python-jobspy requests
+
       - name: Run scraper
         env:
           AIRTABLE_TOKEN: ${{ secrets.AIRTABLE_TOKEN }}
@@ -30,10 +33,12 @@ jobs:
           AIRTABLE_TABLE_ID: ${{ secrets.AIRTABLE_TABLE_ID }}
         run: python scrape_jobs.py
 
-      - name: Score jobs against resume
+      - name: Score jobs against resume (local — no LLM, no API key)
         env:
           AIRTABLE_TOKEN: ${{ secrets.AIRTABLE_TOKEN }}
           AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
           AIRTABLE_TABLE_ID: ${{ secrets.AIRTABLE_TABLE_ID }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python score_jobs.py
+
+# GEMINI_API_KEY is no longer used anywhere in this pipeline.
+# The 429 quota-exhaustion failure mode is structurally eliminated.
