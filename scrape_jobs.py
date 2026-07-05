@@ -18,7 +18,7 @@ import os
 import re
 import sys
 import time
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 
 import requests
 from jobspy import scrape_jobs
@@ -34,8 +34,11 @@ SEARCH_TERMS = [
 ]
 LOCATION = "Bengaluru, Karnataka, India"
 RESULTS_PER_TERM = 5
-HOURS_OLD = 48
+HOURS_OLD = 24            # was 48 — current-day jobs only
+DATE_TOLERANCE_DAYS = 1   # accept posted date = IST today ± 1 day (timezone skew guard)
 MAX_NEW_PER_RUN = 10
+
+IST = timezone(timedelta(hours=5, minutes=30))
 
 AIRTABLE_TOKEN = os.environ["AIRTABLE_TOKEN"]
 AIRTABLE_BASE_ID = os.environ["AIRTABLE_BASE_ID"]
@@ -46,6 +49,19 @@ HEADERS = {
     "Authorization": f"Bearer {AIRTABLE_TOKEN}",
     "Content-Type": "application/json",
 }
+
+def within_date_tolerance(date_posted_str: str) -> bool:
+    """True if posted date is within IST today +/- DATE_TOLERANCE_DAYS.
+    Jobs with no parseable date pass through (HOURS_OLD already bounds them)."""
+    if not date_posted_str or date_posted_str in ("NaT", "nan", "None"):
+        return True
+    try:
+        posted = datetime.strptime(date_posted_str[:10], "%Y-%m-%d").date()
+    except ValueError:
+        return True
+    today_ist = datetime.now(IST).date()
+    return abs((today_ist - posted).days) <= DATE_TOLERANCE_DAYS
+
 
 LINKEDIN_ID_RE = re.compile(r"(?:jobs/view/|currentJobId=|jobPosting:|li-)(\d{6,})")
 ANY_LONG_NUM_RE = re.compile(r"(\d{9,})")
@@ -130,6 +146,7 @@ def main():
     all_new_records = []
     seen_ids = set()
     skipped_no_url = 0
+    skipped_stale = 0
 
     for term in SEARCH_TERMS:
         if len(all_new_records) >= MAX_NEW_PER_RUN:
@@ -168,6 +185,12 @@ def main():
                 skipped_no_url += 1
                 continue
 
+            # --- FRESHNESS FILTER: IST today +/- 1 day only ---
+            date_posted_raw = str(row.get("date_posted") or "")
+            if not within_date_tolerance(date_posted_raw):
+                skipped_stale += 1
+                continue
+
             fields = {
                 "Job Title": str(row.get("title") or ""),
                 "Company": str(row.get("company") or ""),
@@ -177,7 +200,7 @@ def main():
                 "Job Description Raw": str(row.get("description") or "")[:90000],
                 "Status": "Pending Review",
                 "Source Job ID": raw_id,
-                "Date Scraped": date.today().isoformat(),
+                "Date Scraped": datetime.now(IST).date().isoformat(),
             }
             date_posted = row.get("date_posted")
             if date_posted is not None:
@@ -188,7 +211,7 @@ def main():
             all_new_records.append({"fields": fields})
 
     print(f"Pushing {len(all_new_records)} new jobs to Airtable "
-          f"({skipped_no_url} skipped: no direct URL derivable) ...")
+          f"({skipped_no_url} skipped: no URL; {skipped_stale} skipped: outside IST today±1) ...")
     if all_new_records:
         push_records(all_new_records)
     else:
