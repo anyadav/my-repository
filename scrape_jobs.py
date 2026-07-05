@@ -24,7 +24,7 @@ import requests
 from jobspy import scrape_jobs
 
 # ---- Config ----
-SITES = ["naukri"]   # switch back to ["linkedin"] or use both: ["naukri", "linkedin"]
+SITES = ["naukri", "linkedin"]   # switch back to ["linkedin"] or use both: ["naukri", "linkedin"]
 SEARCH_TERMS = [
     "Delivery Manager",
     "Program Manager",
