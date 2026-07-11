@@ -1,5 +1,9 @@
 """
-scrape_jobs.py (v4) -- LinkedIn-only job scraper for Amar's Job Hunt Dashboard.
+scrape_jobs.py (v4-debug) -- LinkedIn-only job scraper for Amar's Job Hunt Dashboard.
+
+TEMPORARY: this revision adds verbose DEBUG print statements to diagnose why
+"Posted Date" and "Easy Apply" were still empty after the v4 fix. Remove the
+DEBUG lines once the root cause is confirmed.
 
 Changes vs v3:
 1. LINKEDIN ONLY -- dropped Naukri; this pipeline now targets LinkedIn
@@ -115,9 +119,13 @@ def detect_easy_apply(url: str) -> bool:
             timeout=10,
         )
         if resp.status_code != 200:
+            print(f"DEBUG detect_easy_apply: status={resp.status_code} url={url}")
             return False
-        return any(marker in resp.text for marker in EASY_APPLY_MARKERS)
-    except requests.RequestException:
+        found = any(marker in resp.text for marker in EASY_APPLY_MARKERS)
+        print(f"DEBUG detect_easy_apply: status=200 found={found} body_len={len(resp.text)} url={url}")
+        return found
+    except requests.RequestException as e:
+        print(f"DEBUG detect_easy_apply error: {e} url={url}")
         return False
 
 def delete_all_records():
@@ -205,6 +213,12 @@ def main():
         if jobs is None or jobs.empty:
             print(f"No results for: {term}")
             continue
+
+        print(f"DEBUG columns for '{term}': {list(jobs.columns)}")
+        if "date_posted" in jobs.columns:
+            print(f"DEBUG date_posted values for '{term}': {jobs['date_posted'].tolist()}")
+        else:
+            print(f"DEBUG 'date_posted' column MISSING for '{term}'")
 
         for _, row in jobs.iterrows():
             if len(all_new_records) >= MAX_NEW_PER_RUN:
