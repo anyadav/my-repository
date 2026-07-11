@@ -1,9 +1,39 @@
 """
-scrape_jobs.py (v4-debug2) -- LinkedIn-only job scraper for Amar's Job Hunt Dashboard.
+scrape_jobs.py (v5) -- LinkedIn-only job scraper for Amar's Job Hunt Dashboard.
 
-TEMPORARY: deeper diagnostics for Easy Apply detection (v1 markers didn't
-match any of the 10 sampled job pages). date_posted is confirmed None from
-jobspy itself for every LinkedIn result -- separate fix needed for that.
+Changes vs v4:
+1. Removed the DEBUG instrumentation used to diagnose Posted Date / Easy
+   Apply. Findings (see repo discussion / chat with Claude for full detail):
+     - jobspy's LinkedIn scraper returns date_posted = None for every job
+       in this environment -- it is not something scrape_jobs.py can fix,
+       it's a limitation of the underlying jobspy library/LinkedIn access.
+     - Directly fetching a job's LinkedIn URL (no login/session) does not
+       expose Easy Apply status or a posted date either -- LinkedIn serves
+       anonymous requests a page that omits this data. Reliably detecting
+       either signal would require an authenticated session (real LinkedIn
+       login), which this script deliberately does NOT attempt.
+   Both fields are left as best-effort: Posted Date is written only if
+   jobspy ever does supply it; Easy Apply is left False/unset since it
+   cannot be determined without authenticated access.
+
+Changes vs v3:
+1. LINKEDIN ONLY -- dropped Naukri; this pipeline now targets LinkedIn
+   exclusively per requirements.
+2. Removed the easy_apply=True search param -- LinkedIn only allows one of
+   {hours_old, easy_apply} per search (python-jobspy docs), so passing both
+   was invalid regardless of its effect on date_posted.
+
+Changes vs v1:
+1. CANONICAL JOB URLS -- every job URL is normalized to
+   https://www.linkedin.com/jobs/view/<numeric_id>/ so clicking a job in the
+   dashboard ALWAYS lands on the actual posting (fixes tracking/redirect URLs
+   that previously dumped users on a search page).
+2. Sets "Date Scraped" on every record.
+3. Skips records where no usable URL can be derived (no point storing a job
+   you can't open).
+
+Pipeline: (this) scrape -> Airtable "Pending Review" -> score_jobs.py (local, no LLM)
+Requires env vars: AIRTABLE_TOKEN, AIRTABLE_BASE_ID, AIRTABLE_TABLE_ID
 """
 
 import os
@@ -27,8 +57,8 @@ SEARCH_TERMS = [
 ]
 LOCATION = "Bengaluru, Karnataka, India"
 RESULTS_PER_TERM = 5
-HOURS_OLD = 24
-DATE_TOLERANCE_DAYS = 1
+HOURS_OLD = 24  # was 48 -- current-day jobs only
+DATE_TOLERANCE_DAYS = 1  # accept posted date = IST today +/- 1 day (timezone skew guard)
 MAX_NEW_PER_RUN = 10
 
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -44,6 +74,8 @@ HEADERS = {
 }
 
 def within_date_tolerance(date_posted_str: str) -> bool:
+    """True if posted date is within IST today +/- DATE_TOLERANCE_DAYS.
+    Jobs with no parseable date pass through (HOURS_OLD already bounds them)."""
     if not date_posted_str or date_posted_str in ("NaT", "nan", "None"):
         return True
     try:
@@ -57,61 +89,26 @@ LINKEDIN_ID_RE = re.compile(r"(?:jobs/view/|currentJobId=|jobPosting:|li-)(\d{6,
 ANY_LONG_NUM_RE = re.compile(r"(\d{9,})")
 
 def canonical_job_url(job_url: str, job_id: str) -> str | None:
+    """
+    Return a direct posting URL, or None if impossible.
+    Normalizes to /jobs/view/<id>/ (handles tracking params, search-page
+    currentJobId URLs, jobspy 'li-<id>' ids).
+    """
     for source in (job_url or "", job_id or ""):
         m = LINKEDIN_ID_RE.search(source)
         if m:
             return f"https://www.linkedin.com/jobs/view/{m.group(1)}/"
+    # last resort: any 9+ digit number in the URL is almost certainly the posting id
     m = ANY_LONG_NUM_RE.search(job_url or "")
     if m:
         return f"https://www.linkedin.com/jobs/view/{m.group(1)}/"
+    # if the url already looks like a clean /jobs/view/ link, keep it
     if job_url and "/jobs/view/" in job_url:
         return job_url.split("?")[0]
     return None
 
-DATEPOSTED_RE = re.compile(r'"datePosted"\s*:\s*"([^"]+)"')
-
-def fetch_job_page_signals(url: str):
-    """
-    DEBUG helper: fetch a job page once and report every signal we can find
-    for Easy Apply + posted date, so we can pick reliable real markers
-    instead of guessing.
-    """
-    try:
-        resp = requests.get(
-            url,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; JobDashboardBot/1.0)"},
-            timeout=10,
-        )
-    except requests.RequestException as e:
-        print(f"DEBUG fetch error: {e} url={url}")
-        return False, None
-
-    if resp.status_code != 200:
-        print(f"DEBUG fetch: status={resp.status_code} url={url}")
-        return False, None
-
-    text = resp.text
-    lower = text.lower()
-    ci_easy_apply = "easy apply" in lower
-    has_dateposted_key = "dateposted" in lower
-    m = DATEPOSTED_RE.search(text)
-    date_posted_jsonld = m.group(1) if m else None
-
-    print(
-        f"DEBUG signals url={url} len={len(text)} "
-        f"ci_easy_apply={ci_easy_apply} has_dateposted_key={has_dateposted_key} "
-        f"jsonld_date_posted={date_posted_jsonld}"
-    )
-    if ci_easy_apply:
-        idx = lower.find("easy apply")
-        print(f"DEBUG easy_apply context: ...{text[max(0,idx-60):idx+60]}...")
-    if has_dateposted_key and not date_posted_jsonld:
-        idx = lower.find("dateposted")
-        print(f"DEBUG dateposted context: ...{text[max(0,idx-30):idx+150]}...")
-
-    return ci_easy_apply, date_posted_jsonld
-
 def delete_all_records():
+    """Delete every existing record -- fresh slate each run."""
     print("Clearing previous listings from Airtable ...")
     deleted_total = 0
     while True:
@@ -162,15 +159,15 @@ def push_records(records):
         time.sleep(0.3)
 
 def main():
-    # delete_all_records()
+    delete_all_records()
 
     all_new_records = []
     seen_ids = set()
     skipped_no_url = 0
     skipped_stale = 0
 
-    for term in SEARCH_TERMS[:1]:
-        if len(all_new_records) >= 3:
+    for term in SEARCH_TERMS:
+        if len(all_new_records) >= MAX_NEW_PER_RUN:
             break
         print(f"Scraping {'+'.join(SITES)} for: {term}")
         try:
@@ -178,10 +175,15 @@ def main():
                 site_name=SITES,
                 search_term=term,
                 location=LOCATION,
-                results_wanted=3,
+                results_wanted=RESULTS_PER_TERM,
                 hours_old=HOURS_OLD,
                 country_indeed="india",
                 linkedin_fetch_description=True,
+                # NOTE: easy_apply intentionally omitted -- LinkedIn only
+                # allows one of {hours_old, easy_apply} per search (jobspy
+                # docs). Even with this fixed, jobspy still returns
+                # date_posted=None for every LinkedIn result in this
+                # environment; see module docstring.
             )
         except Exception as e:
             print(f"Error scraping '{term}': {e}", file=sys.stderr)
@@ -192,17 +194,52 @@ def main():
             continue
 
         for _, row in jobs.iterrows():
+            if len(all_new_records) >= MAX_NEW_PER_RUN:
+                break
             raw_id = str(row.get("id") or row.get("job_url"))
             if raw_id in seen_ids:
                 continue
             seen_ids.add(raw_id)
+
+            # --- URL FIX: only store jobs with a verified direct posting link ---
             clean_url = canonical_job_url(str(row.get("job_url") or ""), raw_id)
             if not clean_url:
                 skipped_no_url += 1
                 continue
-            fetch_job_page_signals(clean_url)
 
-    print("DEBUG-ONLY RUN COMPLETE -- no records pushed to Airtable this run.")
+            # --- FRESHNESS FILTER: IST today +/- 1 day only ---
+            date_posted_raw = str(row.get("date_posted") or "")
+            if not within_date_tolerance(date_posted_raw):
+                skipped_stale += 1
+                continue
+
+            fields = {
+                "Job Title": str(row.get("title") or ""),
+                "Company": str(row.get("company") or ""),
+                "Job URL": clean_url,
+                "Location": str(row.get("location") or ""),
+                # Easy Apply cannot be reliably determined without an
+                # authenticated LinkedIn session -- see module docstring.
+                "Easy Apply": False,
+                "Job Description Raw": str(row.get("description") or "")[:90000],
+                "Status": "Pending Review",
+                "Source Job ID": raw_id,
+                "Date Scraped": datetime.now(IST).date().isoformat(),
+            }
+            date_posted = row.get("date_posted")
+            if date_posted is not None:
+                date_str = str(date_posted)
+                if date_str not in ("NaT", "nan", "None", ""):
+                    fields["Posted Date"] = date_str[:10]
+
+            all_new_records.append({"fields": fields})
+
+    print(f"Pushing {len(all_new_records)} new jobs to Airtable "
+          f"({skipped_no_url} skipped: no URL; {skipped_stale} skipped: outside IST today+/-1) ...")
+    if all_new_records:
+        push_records(all_new_records)
+    else:
+        print("No new jobs found this run.")
 
 if __name__ == "__main__":
     main()
