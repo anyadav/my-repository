@@ -1,22 +1,31 @@
 """
-score_jobs.py (v2) — ZERO-API-KEY local scoring. Gemini removed entirely.
+score_jobs.py (v3) -- ZERO-API-KEY local scoring. Gemini removed entirely.
 
 Why: Gemini free-tier quota exhaustion (429s) was killing daily runs. This
-version scores jobs locally with weighted title/keyword/seniority overlap —
+version scores jobs locally with weighted title/keyword/seniority overlap --
 no LLM, no external calls for scoring, no quota, no rate limiting needed.
 The only API used is Airtable (read pending + write scores), which is
 unavoidable and nowhere near its limits (5 req/s).
 
-Fixes vs v1:
-1. FIELD NAME BUG: v1 read job.get("title") / job.get("description") but the
-   Airtable fields are "Job Title" / "Job Description Raw" — Gemini was
-   scoring empty text. Fixed.
-2. "Hiring Manager" field didn't exist (actual: "Hiring Manager Name") —
-   removed; local scoring doesn't extract names anyway.
-3. Status PATCH now uses typecast:true so new singleSelect options
-   ("Skipped - Low Score") are auto-created instead of silently failing.
-4. Top-5 fallback (was a TODO comment in v1) is implemented.
-5. Batch PATCH (10 records/request) instead of one PATCH per record.
+Changes vs v2:
+1. THRESHOLD RAISED -- MATCH_THRESHOLD is now 90 (was 85), matching the
+   pipeline's move to a tighter, more senior role set on Naukri.
+2. TOP-50-ALWAYS replaces the old top-5-fallback. Previously, if zero jobs
+   cleared the threshold, the top 5 scored jobs were shortlisted as a
+   fallback. Now the top TOP_N (50) scored jobs are ALWAYS written and
+   shortlisted, regardless of whether they clear MATCH_THRESHOLD. Jobs
+   ranked 51+ are marked "Skipped - Low Score" and not shortlisted.
+3. FETCH CAP RAISED (with pagination) -- fetch_pending_jobs now pages
+   through Airtable (up to FETCH_CAP records) instead of a single
+   maxRecords=50 request, so there is an actual pool of candidates to rank
+   for "top 50" to mean something (the scraper now feeds this pipeline a
+   larger daily pool of Naukri jobs across 6 roles).
+4. KEYWORDS refreshed from Amar's latest resume (AmarYadav_final-latest,
+   Google Drive) -- target_titles now match the 6 roles this pipeline
+   scrapes for, and skills/seniority terms reflect his actual background
+   (18+ years, Delivery Manager at Wipro for Google, managed services,
+   global delivery governance, KPI/SLA/SLO and MBR/QBR ownership, P&L,
+   escalation and stakeholder management across APAC/EMEA/NAMER/LATAM).
 
 Requires env vars: AIRTABLE_TOKEN, AIRTABLE_BASE_ID, AIRTABLE_TABLE_ID
 Optional: keywords.json in repo root (falls back to embedded defaults).
@@ -36,78 +45,102 @@ AIRTABLE_TABLE_ID = os.environ["AIRTABLE_TABLE_ID"]
 AIRTABLE_URL = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_ID}"
 HEADERS = {"Authorization": f"Bearer {AIRTABLE_TOKEN}", "Content-Type": "application/json"}
 
-MATCH_THRESHOLD = 85
-FALLBACK_TOP = 5
+MATCH_THRESHOLD = 90
+TOP_N = 50
+FETCH_CAP = 300
 KEYWORDS_PATH = "keywords.json"
 
 DEFAULT_KEYWORDS = {
     "target_titles": [
-        "Delivery Manager", "Program Manager", "Delivery Head",
-        "Account Delivery Head", "Project Manager", "Engineering Manager",
-        "Service Delivery Manager", "Senior Delivery Manager",
+        "Delivery Manager",
+        "Program Manager",
+        "Delivery Head",
+        "Account Delivery Head",
+        "Delivery Director",
+        "Senior Project Manager",
+        "Service Delivery Manager",
+        "Senior Delivery Manager",
+        "Global Delivery Leadership",
     ],
     "skills": [
-        "Managed Services", "Service Delivery Management", "Delivery Governance",
-        "Stakeholder Management", "Escalation Management", "Transition Management",
-        "Program Execution", "Continuous Improvement", "Risk Mitigation",
-        "Resource Planning", "Process Optimization", "Client Relationship Management",
-        "Agile Delivery", "Executive Reporting", "Vendor Coordination",
+        "Managed Services",
+        "Service Delivery Management",
+        "Delivery Governance",
+        "Global Delivery Operations",
+        "Stakeholder Management",
+        "Escalation Management",
+        "Transition Management",
+        "Program Execution",
+        "Continuous Improvement",
+        "Risk Mitigation",
+        "Resource Planning",
+        "Staff Augmentation",
+        "Process Optimization",
+        "Client Relationship Management",
+        "Agile Delivery",
+        "Executive Reporting",
+        "Vendor Coordination",
+        "KPI/SLO Governance",
+        "MBR/QBR Management",
+        "Cross-Functional Leadership",
+        "Strategic Planning",
+        "P&L Management",
+        "Budgeting and Forecasting",
     ],
     "seniority": "leadership",
 }
 
 TITLE_WEIGHT, KEYWORD_WEIGHT, SENIORITY_WEIGHT = 0.45, 0.45, 0.10
+
 SENIORITY_TERMS = {
-    "leadership": ["head", "director", "vp", "vice president", "senior manager"],
+    "leadership": ["leadership", "head", "director", "vp", "vice president", "senior manager"],
     "senior": ["senior", "sr.", "sr ", "lead"],
-    "mid": ["manager", "specialist"],
-    "junior": ["associate", "junior", "coordinator"],
+    "mid": ["mid", "manager", "specialist"],
+    "junior": ["junior", "associate", "coordinator"],
 }
 
 
 # ---- Local scoring (no API) --------------------------------------------
 def norm(text):
-    text = re.sub(r"[^a-zA-Z0-9\s\+\.#/]", " ", text or "").lower()
+    text = re.sub(r"[^a-zA-Z0-9\s\+\.#/]", " ", text.lower())
     return re.sub(r"\s+", " ", text).strip()
 
 
 def title_score(job_title, target_titles):
-    jt = norm(job_title)
+    job_title = norm(job_title)
     best = 0.0
     for t in target_titles:
         t_norm = norm(t)
-        t_words, j_words = set(t_norm.split()), set(jt.split())
+        t_words, j_words = set(t_norm.split()), set(job_title.split())
         if not t_words:
             continue
         overlap = len(t_words & j_words) / len(t_words)
-        if t_norm in jt or jt in t_norm:
+        if t_norm and t_norm in job_title:
             overlap = max(overlap, 0.95)
         best = max(best, overlap)
     return best
 
 
-KEYWORD_TARGET_HITS = 8  # phrase-skills rarely all appear verbatim; 8 phrase hits = strong JD
+KEYWORD_TARGET_HITS = 8
 
 
 def keyword_score(job_text, skills):
-    jt = norm(job_text)
+    job_text = norm(job_text)
     if not skills:
         return 0.0, []
-    hits = [s for s in skills if norm(s) in jt]
-    # Capped denominator: score saturates at KEYWORD_TARGET_HITS so a large
-    # skill library widens coverage without diluting every job's score.
+    hits = [s for s in skills if norm(s) in job_text]
     return min(1.0, len(hits) / KEYWORD_TARGET_HITS), hits
 
 
 def seniority_score(job_text, target_level):
-    jt = norm(job_text)
+    job_text = norm(job_text)
     order = ["junior", "mid", "senior", "leadership"]
     if target_level not in order:
         return 0.5
     target_idx = order.index(target_level)
-    for level in [order[target_idx]] + order:
+    for level in order[target_idx:]:
         for term in SENIORITY_TERMS.get(level, []):
-            if term in jt:
+            if term in job_text:
                 return max(0.0, 1.0 - 0.3 * abs(order.index(level) - target_idx))
     return 0.5
 
@@ -117,8 +150,8 @@ def score_job(fields, kw):
     desc = fields.get("Job Description Raw", "")
     full_text = f"{title} {desc}"
 
-    t = title_score(title, kw["target_titles"])
-    k, hits = keyword_score(full_text, kw["skills"])
+    t = title_score(title, kw.get("target_titles", []))
+    k, hits = keyword_score(full_text, kw.get("skills", []))
     s = seniority_score(full_text, kw.get("seniority", "senior"))
 
     pct = round((t * TITLE_WEIGHT + k * KEYWORD_WEIGHT + s * SENIORITY_WEIGHT) * 100, 1)
@@ -131,15 +164,28 @@ def score_job(fields, kw):
 
 
 # ---- Airtable ------------------------------------------------------------
-def fetch_pending_jobs(cap=50):
-    params = {"filterByFormula": "{Status} = 'Pending Review'", "maxRecords": cap}
-    resp = requests.get(AIRTABLE_URL, headers=HEADERS, params=params, timeout=30)
-    resp.raise_for_status()
-    return resp.json().get("records", [])
+def fetch_pending_jobs(cap=FETCH_CAP):
+    """Page through Airtable's Pending Review records up to cap, so there is
+    a real pool for the top-TOP_N ranking to choose from."""
+    all_records = []
+    offset = None
+    while len(all_records) < cap:
+        params = {"filterByFormula": "{Status} = 'Pending Review'", "pageSize": 100}
+        if offset:
+            params["offset"] = offset
+        resp = requests.get(AIRTABLE_URL, headers=HEADERS, params=params, timeout=30)
+        resp.raise_for_status()
+        data = resp.json()
+        batch = data.get("records", [])
+        all_records.extend(batch)
+        offset = data.get("offset")
+        if not offset or not batch:
+            break
+    return all_records[:cap]
 
 
 def batch_update(updates):
-    """updates: list of {'id':..., 'fields':{...}} — PATCH 10 at a time."""
+    """updates: list of {'id':..., 'fields':{...}} -- PATCH 10 at a time."""
     for i in range(0, len(updates), 10):
         batch = updates[i:i + 10]
         resp = requests.patch(
@@ -152,8 +198,7 @@ def batch_update(updates):
 
 # ---- Main ------------------------------------------------------------
 def main():
-    print("=== score_jobs.py v2 (local scoring, zero API key) ===")
-
+    print("=== score_jobs.py v3 (local scoring, zero API key, top-50-always) ===")
     kw = DEFAULT_KEYWORDS
     if os.path.exists(KEYWORDS_PATH):
         with open(KEYWORDS_PATH, "r", encoding="utf-8") as f:
@@ -169,35 +214,36 @@ def main():
     scored = []
     for record in records:
         pct, reasoning = score_job(record["fields"], kw)
-        scored.append({"id": record["id"], "pct": pct, "reasoning": reasoning,
-                       "title": record["fields"].get("Job Title", "?")})
+        scored.append({
+            "id": record["id"],
+            "pct": pct,
+            "reasoning": reasoning,
+            "title": record["fields"].get("Job Title", "?"),
+        })
 
-    scored.sort(key=lambda x: x["pct"], reverse=True)
-    shortlisted_ids = {s["id"] for s in scored if s["pct"] >= MATCH_THRESHOLD}
+    scored.sort(key=lambda r: r["pct"], reverse=True)
 
-    fallback_used = False
-    if not shortlisted_ids:
-        shortlisted_ids = {s["id"] for s in scored[:FALLBACK_TOP]}
-        fallback_used = True
+    # Always shortlist the top TOP_N by score, regardless of MATCH_THRESHOLD.
+    top_ids = {r["id"] for r in scored[:TOP_N]}
 
     updates = []
-    for s in scored:
-        is_short = s["id"] in shortlisted_ids
-        note = " [top-5 fallback: below threshold]" if (is_short and fallback_used) else ""
+    for r in scored:
+        is_short = r["id"] in top_ids
+        note = " [top-50 by score: below 90% match threshold]" if is_short and r["pct"] < MATCH_THRESHOLD else ""
         updates.append({
-            "id": s["id"],
+            "id": r["id"],
             "fields": {
-                "Match Score": s["pct"],
-                "AI Reasoning": s["reasoning"] + note,
+                "Match Score": r["pct"],
+                "AI Reasoning": r["reasoning"] + note,
                 "Status": "Shortlisted" if is_short else "Skipped - Low Score",
             },
         })
-        print(f"  {s['pct']:5.1f}%  {'SHORTLIST' if is_short else 'skip     '}  {s['title']}")
+        print(f"{r['pct']:5.1f}% {'SHORTLIST' if is_short else 'skip '} {r['title']}")
 
     batch_update(updates)
-    print(f"Shortlisted {len(shortlisted_ids)}/{len(scored)}"
-          + (" (top-5 fallback)" if fallback_used else ""))
-    print("=== complete — zero LLM calls made ===")
+    print(f"Shortlisted {len(top_ids)}/{len(scored)} (top {TOP_N} by score, "
+          f"MATCH_THRESHOLD={MATCH_THRESHOLD}% used only for the below-threshold note)")
+    print("=== complete -- zero LLM calls made ===")
 
 
 if __name__ == "__main__":
