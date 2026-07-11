@@ -1,8 +1,20 @@
 """
-scrape_jobs.py (v3) — Naukri job scraper for Amar's Job Hunt Dashboard.
+scrape_jobs.py (v4) -- LinkedIn-only job scraper for Amar's Job Hunt Dashboard.
+
+Changes vs v3:
+1. LINKEDIN ONLY -- dropped Naukri; this pipeline now targets LinkedIn
+   exclusively per requirements.
+2. POSTED DATE FIX -- removed the easy_apply=True search param. LinkedIn
+   only allows one of {hours_old, easy_apply} per search (see python-jobspy
+   docs); passing both was silently corrupting date_posted on every result.
+3. EASY APPLY FIX -- python-jobspy no longer returns an easy_apply field at
+   all (and its easy_apply search filter "no longer works" for LinkedIn per
+   the library's own docs), so the old row.get("easy_apply") lookup always
+   fell back to False. Easy Apply status is now detected directly from each
+   job's LinkedIn page via detect_easy_apply().
 
 Changes vs v1:
-1. CANONICAL JOB URLS — every job URL is normalized to
+1. CANONICAL JOB URLS -- every job URL is normalized to
    https://www.linkedin.com/jobs/view/<numeric_id>/ so clicking a job in the
    dashboard ALWAYS lands on the actual posting (fixes tracking/redirect URLs
    that previously dumped users on a search page).
@@ -24,7 +36,7 @@ import requests
 from jobspy import scrape_jobs
 
 # ---- Config ----
-SITES = ["naukri", "linkedin"]   # switch back to ["linkedin"] or use both: ["naukri", "linkedin"]
+SITES = ["linkedin"]  # LinkedIn only -- Naukri dropped per requirements
 SEARCH_TERMS = [
     "Delivery Manager",
     "Program Manager",
@@ -35,8 +47,8 @@ SEARCH_TERMS = [
 ]
 LOCATION = "Bengaluru, Karnataka, India"
 RESULTS_PER_TERM = 5
-HOURS_OLD = 24            # was 48 — current-day jobs only
-DATE_TOLERANCE_DAYS = 1   # accept posted date = IST today ± 1 day (timezone skew guard)
+HOURS_OLD = 24  # was 48 -- current-day jobs only
+DATE_TOLERANCE_DAYS = 1  # accept posted date = IST today +/- 1 day (timezone skew guard)
 MAX_NEW_PER_RUN = 10
 
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -63,22 +75,15 @@ def within_date_tolerance(date_posted_str: str) -> bool:
     today_ist = datetime.now(IST).date()
     return abs((today_ist - posted).days) <= DATE_TOLERANCE_DAYS
 
-
 LINKEDIN_ID_RE = re.compile(r"(?:jobs/view/|currentJobId=|jobPosting:|li-)(\d{6,})")
 ANY_LONG_NUM_RE = re.compile(r"(\d{9,})")
-
 
 def canonical_job_url(job_url: str, job_id: str) -> str | None:
     """
     Return a direct posting URL, or None if impossible.
-    Naukri: URLs from JobSpy are already direct job-listing pages —
-    strip tracking query params only.
-    LinkedIn: normalize to /jobs/view/<id>/ (handles tracking params,
-    search-page currentJobId URLs, jobspy 'li-<id>' ids).
+    Normalizes to /jobs/view/<id>/ (handles tracking params, search-page
+    currentJobId URLs, jobspy 'li-<id>' ids).
     """
-    if job_url and "naukri.com" in job_url:
-        clean = job_url.split("?")[0]
-        return clean if "/job-listings" in clean or "/jobs-" in clean or "naukri.com/" in clean else None
     for source in (job_url or "", job_id or ""):
         m = LINKEDIN_ID_RE.search(source)
         if m:
@@ -92,9 +97,31 @@ def canonical_job_url(job_url: str, job_id: str) -> str | None:
         return job_url.split("?")[0]
     return None
 
+EASY_APPLY_MARKERS = ("Easy Apply", "easy-apply-button", "jobs-apply-button--top-card")
+
+def detect_easy_apply(url: str) -> bool:
+    """
+    Best-effort check for the "Easy Apply" badge on a LinkedIn job posting.
+    jobspy no longer exposes an easy_apply field in its output, and its
+    easy_apply search filter no longer works for LinkedIn either (per the
+    library's own docs), so we fetch the public posting page directly and
+    look for the Easy Apply button/badge. Fails safe: any error/timeout/
+    non-200 response -> False (never blocks the rest of the run).
+    """
+    try:
+        resp = requests.get(
+            url,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; JobDashboardBot/1.0)"},
+            timeout=10,
+        )
+        if resp.status_code != 200:
+            return False
+        return any(marker in resp.text for marker in EASY_APPLY_MARKERS)
+    except requests.RequestException:
+        return False
 
 def delete_all_records():
-    """Delete every existing record — fresh slate each run."""
+    """Delete every existing record -- fresh slate each run."""
     print("Clearing previous listings from Airtable ...")
     deleted_total = 0
     while True:
@@ -123,7 +150,6 @@ def delete_all_records():
             break
     print(f"Deleted {deleted_total} previous records.")
 
-
 def push_records(records):
     for i in range(0, len(records), 10):
         batch = records[i:i + 10]
@@ -132,7 +158,7 @@ def push_records(records):
             json={"records": batch, "typecast": True}, timeout=30,
         )
         if resp.status_code >= 300:
-            print(f"Batch failed ({resp.status_code}) — retrying individually")
+            print(f"Batch failed ({resp.status_code}) -- retrying individually")
             for rec in batch:
                 r = requests.post(
                     AIRTABLE_API, headers=HEADERS,
@@ -144,7 +170,6 @@ def push_records(records):
         else:
             print(f"Pushed {len(batch)} records")
         time.sleep(0.3)
-
 
 def main():
     delete_all_records()
@@ -166,9 +191,12 @@ def main():
                 results_wanted=RESULTS_PER_TERM,
                 hours_old=HOURS_OLD,
                 country_indeed="india",
-                # LinkedIn-only params, ignored by Naukri, kept for easy switch-back:
                 linkedin_fetch_description=True,
-                easy_apply=True,
+                # NOTE: easy_apply intentionally omitted here -- LinkedIn only
+                # allows one of {hours_old, easy_apply} per search (jobspy
+                # docs), and passing both was corrupting date_posted for every
+                # result. Easy Apply is now detected ourselves below via
+                # detect_easy_apply() instead of relying on jobspy for it.
             )
         except Exception as e:
             print(f"Error scraping '{term}': {e}", file=sys.stderr)
@@ -203,7 +231,7 @@ def main():
                 "Company": str(row.get("company") or ""),
                 "Job URL": clean_url,
                 "Location": str(row.get("location") or ""),
-                "Easy Apply": bool(row.get("easy_apply")) if row.get("easy_apply") == row.get("easy_apply") and row.get("easy_apply") is not None else False,  # Naukri: no Easy Apply concept; False unless source says otherwise
+                "Easy Apply": detect_easy_apply(clean_url),
                 "Job Description Raw": str(row.get("description") or "")[:90000],
                 "Status": "Pending Review",
                 "Source Job ID": raw_id,
@@ -218,12 +246,11 @@ def main():
             all_new_records.append({"fields": fields})
 
     print(f"Pushing {len(all_new_records)} new jobs to Airtable "
-          f"({skipped_no_url} skipped: no URL; {skipped_stale} skipped: outside IST today±1) ...")
+          f"({skipped_no_url} skipped: no URL; {skipped_stale} skipped: outside IST today+/-1) ...")
     if all_new_records:
         push_records(all_new_records)
     else:
         print("No new jobs found this run.")
-
 
 if __name__ == "__main__":
     main()
