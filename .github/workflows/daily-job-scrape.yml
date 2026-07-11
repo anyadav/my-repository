@@ -1,11 +1,11 @@
-name: Daily LinkedIn Job Scrape
+name: Daily Naukri Job Scrape
 
 on:
   schedule:
-    # 23:00 UTC = 04:30 IST next day, every day
-    - cron: "0 23 * * *"
+    # 23:30 UTC = 05:00 IST next day, every day
+    - cron: "30 23 * * *"
   workflow_dispatch: {}
-  # NOTE: 'push' trigger removed — v1 re-ran the full scrape (wiping the
+  # NOTE: 'push' trigger removed -- v1 re-ran the full scrape (wiping the
   # Airtable table) on every commit to the branch. Use the manual
   # "Run workflow" button when you want an on-demand run.
 
@@ -33,7 +33,7 @@ jobs:
           AIRTABLE_TABLE_ID: ${{ secrets.AIRTABLE_TABLE_ID }}
         run: python scrape_jobs.py
 
-      - name: Score jobs against resume (local — no LLM, no API key)
+      - name: Score jobs against resume (local -- no LLM, no API key)
         env:
           AIRTABLE_TOKEN: ${{ secrets.AIRTABLE_TOKEN }}
           AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
