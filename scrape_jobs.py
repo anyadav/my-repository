@@ -169,11 +169,11 @@ def passes_salary_filter(min_amount, max_amount, interval, currency,
 
 # ---- URL handling ----
 def clean_job_url(job_url):
-    """Return a direct Naukri posting URL with tracking params stripped, or
-    None if the URL is missing/unusable."""
+    """Return the direct job posting URL as scraped (query params kept --
+    e.g. Indeed's job-key param); None if the URL is missing/unusable."""
     if not job_url or str(job_url).strip().lower() in ("nan", "none", ""):
         return None
-    url = str(job_url).split("?")[0].strip()
+    url = str(job_url).strip()
     return url or None
 
 
