@@ -53,8 +53,7 @@ import requests
 from jobspy import scrape_jobs
 
 # ---- Config ----
-SITES = ["naukri"]  # Naukri only, per requirements
-
+SITES = ["indeed", "linkedin", "zip_recruiter", "google"]  # Naukri is not supported by python-jobspy; switched to supported India-capable sources
 SEARCH_TERMS = [
     "Delivery Manager",
     "Program Manager",
@@ -274,6 +273,7 @@ def main():
                 location=LOCATION,
                 results_wanted=RESULTS_PER_TERM,
                 hours_old=HOURS_OLD,
+               country_indeed="India",  # required by jobspy when "indeed" is included in site_name
             )
         except Exception as e:
             print(f"Error scraping '{term}': {e}", file=sys.stderr)
