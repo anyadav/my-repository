@@ -198,7 +198,8 @@ def batch_update(updates):
 
 # ---- Main ------------------------------------------------------------
 def main():
-    print("=== score_jobs.py v3 (local scoring, zero API key, >=70% shortlist) ===")    kw = DEFAULT_KEYWORDS
+    print("=== score_jobs.py v3 (local scoring, zero API key, >=70% shortlist) ===")
+    kw = DEFAULT_KEYWORDS
     if os.path.exists(KEYWORDS_PATH):
         with open(KEYWORDS_PATH, "r", encoding="utf-8") as f:
             kw = {**DEFAULT_KEYWORDS, **json.load(f)}
