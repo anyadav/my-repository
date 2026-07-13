@@ -273,7 +273,7 @@ def main():
                 location=LOCATION,
                 results_wanted=RESULTS_PER_TERM,
                 hours_old=HOURS_OLD,
-               country_indeed="India",  # required by jobspy when "indeed" is included in site_name
+                country_indeed="India",  # required by jobspy when "indeed" is included in site_name
             )
         except Exception as e:
             print(f"Error scraping '{term}': {e}", file=sys.stderr)
