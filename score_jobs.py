@@ -45,7 +45,7 @@ AIRTABLE_TABLE_ID = os.environ["AIRTABLE_TABLE_ID"]
 AIRTABLE_URL = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_ID}"
 HEADERS = {"Authorization": f"Bearer {AIRTABLE_TOKEN}", "Content-Type": "application/json"}
 
-MATCH_THRESHOLD = 90
+MATCH_THRESHOLD = 70
 TOP_N = 50
 FETCH_CAP = 300
 KEYWORDS_PATH = "keywords.json"
@@ -198,8 +198,7 @@ def batch_update(updates):
 
 # ---- Main ------------------------------------------------------------
 def main():
-    print("=== score_jobs.py v3 (local scoring, zero API key, top-50-always) ===")
-    kw = DEFAULT_KEYWORDS
+    print("=== score_jobs.py v3 (local scoring, zero API key, >=70% shortlist) ===")    kw = DEFAULT_KEYWORDS
     if os.path.exists(KEYWORDS_PATH):
         with open(KEYWORDS_PATH, "r", encoding="utf-8") as f:
             kw = {**DEFAULT_KEYWORDS, **json.load(f)}
@@ -223,26 +222,26 @@ def main():
 
     scored.sort(key=lambda r: r["pct"], reverse=True)
 
-    # Always shortlist the top TOP_N by score, regardless of MATCH_THRESHOLD.
-    top_ids = {r["id"] for r in scored[:TOP_N]}
+# Shortlist only jobs scoring >= MATCH_THRESHOLD, capped at TOP_N.
+qualifying = [r for r in scored if r["pct"] >= MATCH_THRESHOLD]
+top_ids = {r["id"] for r in qualifying[:TOP_N]}
 
     updates = []
     for r in scored:
         is_short = r["id"] in top_ids
-        note = " [top-50 by score: below 90% match threshold]" if is_short and r["pct"] < MATCH_THRESHOLD else ""
         updates.append({
             "id": r["id"],
             "fields": {
                 "Match Score": r["pct"],
-                "AI Reasoning": r["reasoning"] + note,
+                "AI Reasoning": r["reasoning"],
                 "Status": "Shortlisted" if is_short else "Skipped - Low Score",
             },
         })
         print(f"{r['pct']:5.1f}% {'SHORTLIST' if is_short else 'skip '} {r['title']}")
 
     batch_update(updates)
-    print(f"Shortlisted {len(top_ids)}/{len(scored)} (top {TOP_N} by score, "
-          f"MATCH_THRESHOLD={MATCH_THRESHOLD}% used only for the below-threshold note)")
+    print(f"Shortlisted {len(top_ids)}/{len(scored)} jobs scoring >= "
+                    f"{MATCH_THRESHOLD}% (capped at top {TOP_N})")
     print("=== complete -- zero LLM calls made ===")
 
 
