@@ -222,9 +222,9 @@ def main():
 
     scored.sort(key=lambda r: r["pct"], reverse=True)
 
-      # Shortlist only jobs scoring >= MATCH_THRESHOLD, capped at TOP_N.
-      qualifying = [r for r in scored if r["pct"] >= MATCH_THRESHOLD]
-      top_ids = {r["id"] for r in qualifying[:TOP_N]}
+   # Shortlist only jobs scoring >= MATCH_THRESHOLD, capped at TOP_N.
+   qualifying = [r for r in scored if r["pct"] >= MATCH_THRESHOLD]
+   top_ids = {r["id"] for r in qualifying[:TOP_N]}
 
     updates = []
     for r in scored:
