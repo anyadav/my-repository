@@ -45,7 +45,7 @@ AIRTABLE_TABLE_ID = os.environ["AIRTABLE_TABLE_ID"]
 AIRTABLE_URL = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_ID}"
 HEADERS = {"Authorization": f"Bearer {AIRTABLE_TOKEN}", "Content-Type": "application/json"}
 
-MATCH_THRESHOLD = 70
+MATCH_THRESHOLD = 75
 TOP_N = 50
 FETCH_CAP = 300
 KEYWORDS_PATH = "keywords.json"
@@ -198,7 +198,7 @@ def batch_update(updates):
 
 # ---- Main ------------------------------------------------------------
 def main():
-    print("=== score_jobs.py v3 (local scoring, zero API key, >=70% shortlist) ===")
+    print("=== score_jobs.py v3 (local scoring, zero API key, >=75% shortlist) ===")
     kw = DEFAULT_KEYWORDS
     if os.path.exists(KEYWORDS_PATH):
         with open(KEYWORDS_PATH, "r", encoding="utf-8") as f:
