@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 
 /*Example program to use open() */
 void myopen()
@@ -13,7 +14,8 @@ char rbuff[20];
 
 
 int fdes;
-fdes = open("myfile", O_RDWR|O_CREAT,S_IRUSR|S_IWUSR);
+fdes = open("myfile", O_RDWR|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR);
+if(fdes < 0){perror("open myfile"); return;}
 //fdes = open("myfile", O_WRONLY|O_CREAT,S_IRUSR|S_IWUSR);
 //fdes = open("myfile", O_RDWR|O_CREAT);
 
@@ -23,19 +25,20 @@ if(ret < 0)printf("write() failed!!!ret = %d\n",ret);
 
 lseek(fdes,0,SEEK_SET);
 printf("date written by write() into myfile from buff\n");
-while(read(fdes,&c,1)){printf("%c",c);}
+while(read(fdes,&c,1) > 0){printf("%c",c);}
 printf("\n");
 
 
 lseek(fdes,0,SEEK_SET);
 
-//ret = 
-read(fdes,rbuff,10);
+ret = read(fdes,rbuff,10);
 if(ret < 0)printf("read() failed!!! ret=%d\n",ret);
 
 
 printf("buff[0]=%c \n",buff[0]);
-printf("rbuff[0]=%c \n",rbuff[0]);
+if(ret > 0)printf("rbuff[0]=%c \n",rbuff[0]);
+
+close(fdes);
 
 system("cat myfile;rm myfile");
 //system("cat;rm myfile");

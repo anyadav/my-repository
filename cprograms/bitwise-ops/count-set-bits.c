@@ -3,26 +3,25 @@
 
 int main(){
 
-int a, count1,temp;
+unsigned int a, count1,temp;
 int count = 0;
-int countsetbits(int num);
+int countsetbits(unsigned int num);
 printf("Enter the number to count set bits: ");
-scanf("%d",&a);
+scanf("%u",&a);
 temp = a;
 
 //Method 1 : Using loop
-do{
-if(a==0)return 0;
-else if(a&1)count++;
+while(a){
+if(a&1)count++;
 a=a>>1;
-}while(a);
+}
 printf("No one set bits: %d\n",count);
 
 
 
 a=temp;
 count1 = countsetbits(a);
-printf("Total 1s in %d is: %d \n",a,count1);
+printf("Total 1s in %u is: %u \n",a,count1);
 
 return 0;
 }
@@ -30,7 +29,7 @@ return 0;
 
 //Method 2 : Without loop
 
-int countsetbits(int num)
+int countsetbits(unsigned int num)
 {
 if(num==0)
 	return 0;

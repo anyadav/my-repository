@@ -5,6 +5,8 @@ int main()
 {
     int r = 3, c = 4;
     int *arr = (int *)malloc(r * c * sizeof(int));
+    if (arr == NULL)
+        return 1;
  
     int i, j, count = 0;
     for (i = 0; i <  r; i++)
@@ -14,8 +16,8 @@ int main()
     for (i = 0; i <  r; i++){
       for (j = 0; j < c; j++)
          printf("%d ", *(arr + i*c + j));
-	 printf("\n");
-	}
+      printf("\n");
+    }
  
    /* Code for further processing and free the 
  *       dynamically allocated memory */

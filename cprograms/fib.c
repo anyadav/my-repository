@@ -8,10 +8,11 @@ int fib(int n);
 printf("Enter the count for fib series: ");
 scanf("%d",&n);
 
-for(i=0;i<=n;i++){
+for(i=0;i<n;i++){
 printf("%d  ",fib(i));
 }
 printf("\n");
+return 0;
 }
 
 int fib(int n)

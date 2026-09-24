@@ -1,4 +1,5 @@
 #include<stdio.h>
+#include<stdlib.h>
 
 int dif(int i, int j){
 	if(i>=j) return (i-j);
@@ -12,8 +13,8 @@ printf("add: %d\n",(i+j));
 
 printf("mul: %d\n",mul(i,j));
 printf("dif : %d\n",dif(i,j));
-printf("%s \n",(char *)pt);
 pt = "amar";
+printf("%s \n",(char *)pt);
 pt++;
 return (i+j);
 }
@@ -27,15 +28,17 @@ int b=3;
 int c=4;
 int d=5; 
 int ad,di,mu;
-char *ptr;
 int *pt;
 
 pt = (int *)malloc(sizeof(int));
-pt =&a;
+if(pt == NULL)
+	return 1;
+*pt = a;
 
-ad = add(a,b);
-//di = dif(d,c);
-//mu =mul(ad,di);
+ad = add(*pt,b);
+di = dif(d,c);
+mu =mul(ad,di);
+printf("mul(add,dif): %d\n",mu);
 
 free(pt);
 return 0;

@@ -10,7 +10,14 @@ static int i=0;
   if (*strng)
     {
       reverse (strng + 1);
-      revstr[i++] = *strng;	
+      if (i < (int) sizeof (revstr) - 1)
+        revstr[i++] = *strng;
+      revstr[i] = '\0';
+    }
+  else
+    {
+      i = 0;	/* deepest call runs first: reset for each new string */
+      revstr[0] = '\0';
     }
 }
 

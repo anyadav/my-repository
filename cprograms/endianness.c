@@ -1,18 +1,20 @@
+#include <stdio.h>
+
 int
 main ()
 {
   int var;
-  char *ptr;
+  unsigned char *ptr;
   var = 0x76543210;
-  ptr = (char *) &var;
+  ptr = (unsigned char *) &var;
   printf ("ptr is: 0x%x\n", *ptr);
   printf ("ptr is: %x\n", *(ptr + 1));
   printf ("ptr is: %x\n", *(ptr + 2));
   printf ("ptr is: 0x%x\n", *(ptr + 3));
   if (*ptr == 0x10)
-    printf ("litle endian");
+    printf ("litle endian\n");
 
   else
-    printf ("Big endian");
+    printf ("Big endian\n");
   return 0;
 }

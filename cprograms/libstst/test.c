@@ -1,3 +1,10 @@
+#include<stdio.h>
+
+/* defined in myfun.c */
+int add(int a, int b);
+int diff(int a, int b);
+int mul(int a, int b);
+
 int main()
 {
 
@@ -11,7 +18,7 @@ mult = mul(a,b);
 ad = add(a,b);
 dif = diff(a,b);
 dif1 = diff(a,c);
-printf("add: %d\n diff: %d\n,diff1: %d\n,mul: %d\n",ad,dif,dif1,mult);
+printf("add: %d\ndiff: %d\ndiff1: %d\nmul: %d\n",ad,dif,dif1,mult);
 
 return 0;
 }

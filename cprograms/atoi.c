@@ -4,14 +4,14 @@
 int main()
 {
 int i;
-//char buf[256];
+char buf[256];
 printf("Enter a number: ");
-scanf("%d",&i);
+if(scanf("%255s",buf) != 1)
+	return 1;
 
-i = atoi(i);
+i = atoi(buf);
 printf("%d\n",i);
 
 return 0;
 }
-
 

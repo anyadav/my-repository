@@ -1,3 +1,7 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+
 int add(int x, int y){
 
 int z =10;
@@ -7,13 +11,20 @@ return z;
 
 int main(int argc, char**argv){
 
+if(argc < 3){
+	printf("Usage: %s <num1> <num2>\n", argv[0]);
+	return 1;
+}
+
 int a = atoi(argv[1]);
 int b = atoi(argv[2]);
 
 int  c;
 char buffer[100];
-gets(buffer);
-puts(buffer);
+if(fgets(buffer, sizeof(buffer), stdin) != NULL){
+	buffer[strcspn(buffer, "\n")] = '\0';
+	puts(buffer);
+}
 
 c = add(a,b);
 
