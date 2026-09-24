@@ -78,7 +78,7 @@ printf("\n");
 
 /*END OF SECOND METHOD */
 
-printf("\nEND OF SECON METHOD, PRINTING ARRAY USING THIRD METHOD NOW\n");
+printf("\nEND OF SECOND METHOD, PRINTING ARRAY USING THIRD METHOD NOW\n");
 
 /*THIRD METHOD STARTS HERE*/
 
@@ -88,7 +88,7 @@ printf("\nEND OF SECON METHOD, PRINTING ARRAY USING THIRD METHOD NOW\n");
  * we can dynamically allocate memory and for every row like method 2.
  */
 
-int **arr2 = (int **)malloc(ROW*sizeof(int));
+int **arr2 = (int **)malloc(ROW*sizeof(int *));
 for( i = 0; i < ROW; i++)
  arr2[i] = (int *)malloc(COL*sizeof(int));
 
@@ -117,10 +117,13 @@ for (i = 0; i < ROW; i++){
 printf("\n");
 }
 
-
-
-
-
+/* release all heap memory */
+free(arr);
+for (i = 0; i < ROW; i++) {
+free(arr1[i]);
+free(arr2[i]);
+}
+free(arr2);
 
 return 0;
 } /*end of main */

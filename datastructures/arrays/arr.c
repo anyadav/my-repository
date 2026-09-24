@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-int main(int argc, char *argv[])
+int main(void)
 {
     int numbers[4] = {0}; //initializing by single entry will initialize all elements by zero - expected 
     char name[4] = {'a'};//initialize only 1st entry to 'a' remaining to 0 for char array

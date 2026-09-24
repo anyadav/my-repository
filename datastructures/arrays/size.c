@@ -15,13 +15,13 @@ struct amar an;
 int main()
 {
 
-printf("long: %d\n",sizeof(long));
-printf("int: %d\n",sizeof(int));
-printf("char: %d\n",sizeof(char));
-printf("short: %d\n",sizeof(short));
-printf("long double: %d\n",sizeof(long double));
+printf("long: %zu\n",sizeof(long));
+printf("int: %zu\n",sizeof(int));
+printf("char: %zu\n",sizeof(char));
+printf("short: %zu\n",sizeof(short));
+printf("long double: %zu\n",sizeof(long double));
 
-printf("\n size of struct: %d\n",sizeof(an));
+printf("\n size of struct: %zu\n",sizeof(an));
 return 0;
 
 }
