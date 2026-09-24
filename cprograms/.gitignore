@@ -1,0 +1,6 @@
+# Build outputs
+*.o
+*.so
+*.a
+a.out
+file-ops/fileops
