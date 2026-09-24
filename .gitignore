@@ -1,0 +1,7 @@
+# Build outputs
+*.o
+*.so
+*.a
+*.out
+unix-system-programming/ipc/messageQ/msgqrcv
+unix-system-programming/ipc/messageQ/msgqsnd
