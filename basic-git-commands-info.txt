@@ -1,25 +1,104 @@
-Clone/Download the complete repository:
-=======================================
-cd to-loc-where-you-want-to-copy
-git init
-git clone https://github.com/anyadav/my-repository.git   //This will clone complete my-repositiory to local system
+GIT / GITHUB QUICK REFERENCE  (repo: https://github.com/anyadav/my-repository)
+================================================================================
+
+Current setup on this machine:
+  - Remote (origin) : https://github.com/anyadav/my-repository.git   (HTTPS)
+  - Default branch  : master
+  - Auth            : Personal Access Token, saved in ~/.git-credentials
+                      (via "git config --global credential.helper store")
 
 
 
-For new addition of file under a branch:
-========================================
-cd to the rspective dir
-git init
-git add file-to-be-added(or * for several files in the dir)
-git commit -m “Comment related to checkin”
-git remote add origin https://github.com/anyadav/datastructures.git    /*this is needed only first time*/
-git push -u origin master   //It will ask for user name/password 
+PART 1: ONE-TIME SETUP (new machine)
+====================================
+
+1. Install git (Debian/Ubuntu):
+   sudo apt update && sudo apt install -y git
+
+2. Set your identity (used as the author of every commit):
+   git config --global user.name  "anyadav"
+   git config --global user.email "amaryadav.01@gmail.com"
+
+3. Tell git to remember the token after the first push:
+   git config --global credential.helper store
+
+4. Create a token on GitHub (browser):
+   GitHub -> Settings -> Developer settings -> Personal access tokens
+   -> Generate new token -> select "repo" scope -> copy the token
+   (GitHub no longer accepts your account password for git.)
+
+5a. Repo already exists on GitHub -> clone it (no "git init" needed):
+    cd ~/claude-project
+    git clone https://github.com/anyadav/my-repository.git
+    cd my-repository
+
+5b. OR start from a brand-new local folder that is NOT a clone:
+    cd my-new-project
+    git init                      # only here, only once
+    git branch -M master
+    git remote add origin https://github.com/anyadav/my-repository.git
+
+6. First push (asks for credentials only this once):
+   git push -u origin master
+     Username: anyadav
+     Password: <paste the TOKEN, not your GitHub password>
+   The token is then saved to ~/.git-credentials and not asked again.
+   Keep that file private:  chmod 600 ~/.git-credentials
 
 
 
-To modify a existing file in the branch:
-========================================
-cd to corresponding gitsource dir in local system
-git add file-to-be-updated
-git commit -m “comment about your changes”
-git push -u origin master
+PART 2: ADD NEW FILES / PUSH CHANGES (every time)
+=================================================
+
+cd ~/claude-project/my-repository
+
+git pull                           # 1. get latest changes from GitHub FIRST
+  ... create or edit your files ...
+git status                         # 2. see what is new/changed
+git add myfile.c                   # 3. stage one file
+  git add cprograms/               #    or a whole folder
+  git add .                        #    or everything that changed
+git commit -m "Add myfile.c"       # 4. save a snapshot (use straight quotes "")
+git push                           # 5. upload to GitHub
+
+Notes:
+  - Do NOT run "git init" inside any folder of this repo; it creates a
+    separate nested repo. The whole my-repository folder is already a repo.
+  - Do NOT run "git remote add origin ..." again; the remote is already set.
+  - "-u origin master" is only needed on the very first push; after that,
+    plain "git push" is enough.
+  - Modifying an existing file uses the same steps as adding a new one.
+
+
+
+PART 3: OTHER USEFUL COMMANDS
+=============================
+
+git log --oneline                  # commit history, one line each
+git diff                           # exact changes not yet staged
+git diff --staged                  # exact changes already staged
+git restore --staged <file>        # unstage a file added by mistake
+git restore <file>                 # discard local edits to a file
+git rm <file>                      # delete a file and stage the deletion
+git mv <old> <new>                 # rename/move a file
+git remote -v                      # which GitHub repo this is linked to
+
+Branches:
+git branch                         # list local branches
+git checkout -b my-feature         # create and switch to a new branch
+git push -u origin my-feature      # push the new branch to GitHub
+git checkout master                # switch back to master
+
+
+
+TROUBLESHOOTING
+===============
+
+Push rejected ("fetch first" / "non-fast-forward"):
+  git pull          # merge GitHub's changes, fix conflicts if any
+  git push
+
+Token expired / "Authentication failed":
+  - Create a new token on GitHub (see Part 1, step 4)
+  - nano ~/.git-credentials  -> replace the old token with the new one
+    (or delete the file; the next push will prompt again and re-save it)
