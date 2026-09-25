@@ -87,6 +87,7 @@ thrfun1 (void *arg)
     {
       printf ("1");
     }
+  return NULL;
 }
 
 
@@ -100,4 +101,5 @@ thrfun2 (void *arg)
     {
       printf ("2");
     }
+  return NULL;
 }

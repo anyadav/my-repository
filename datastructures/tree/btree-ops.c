@@ -61,23 +61,17 @@ return 0;
  */   
 struct node* insertinbinarytree(struct node* tree, int data)
 {
-struct node* temp =tree;
-if(temp==(struct node*)NULL)
+if(tree==(struct node*)NULL)
 {
-temp->data=data;
-temp->left=(struct node*)NULL;
-temp->right=(struct node*)NULL;
-
-return tree;
+return makenode(data);
 }
-else if(temp->left == (struct node*)NULL)
+else if(tree->left == (struct node*)NULL)
 {
-temp->left->data=data;
-temp->left->left=(struct node*)NULL;
-temp->left->right=(struct node*)NULL;
+tree->left = makenode(data);
 return tree;
 }
 
+return tree;
 }
 
 

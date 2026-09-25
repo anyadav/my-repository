@@ -16,8 +16,8 @@ char msg[]="This is just a message to/from thread";
 int main(){
 
 int res;
-pthread_t athread;
-void *threadres, *thread1, *thread2;
+pthread_t athread, thread1, thread2;
+void *threadres;
 
 /*
 res = pthread_create(&athread, NULL, threadfun, (void *)msg);
@@ -34,9 +34,9 @@ printf("msg is now:\n%s\n", msg);
 
 /*checking paraller execution of threads */
 
-res = pthread_create(thread1, NULL,thrfun1,NULL);
+res = pthread_create(&thread1, NULL,thrfun1,NULL);
 errchk(res);
-res = pthread_create(thread2, NULL, thrfun2, NULL);
+res = pthread_create(&thread2, NULL, thrfun2, NULL);
 errchk(res);
 
 
@@ -74,6 +74,7 @@ while (count1++<20){
                 }
         else{sleep(1);}
         }
+return NULL;
 }
 
 
@@ -89,6 +90,7 @@ while (count2++<20){
                 }
         else{sleep(1);}
         }
+return NULL;
 }
 
 

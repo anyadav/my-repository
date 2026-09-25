@@ -20,12 +20,13 @@ char *sm;
 
 //Read data from shared memory
   sm = (char *)shm_mem;
-while(*sm)
+while(*sm && i < BUFFSIZE - 1)
 {
 buff[i++] = *(char *)sm++;
-}    
+}
+buff[i] = '\0';
 
-*sm = (char *)NULL;
+*sm = '\0';
 *(char *)shm_mem = '*';
 //shm_mem =NULL;
 

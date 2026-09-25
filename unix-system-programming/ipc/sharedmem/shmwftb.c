@@ -1,3 +1,6 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
 #include<sys/ipc.h>
 #include<sys/shm.h>
 
@@ -6,17 +9,16 @@ int main()
 
 int k, shmid;
 void *data;
-FILE *fp;
-char buf[100];
+char *tmp;
 
 k=ftok("./amar",10);
 
 shmid = shmget(k, 1000, IPC_CREAT | 0744);
 data = shmat(shmid, (void *)0, 0);
 
-
-
-strcpy((char*)tmp, "helloWorld");
+tmp = (char *)data;
+tmp += 10;
+strcpy(tmp, "helloWorld");
 
 shmdt(data);
 exit(0);

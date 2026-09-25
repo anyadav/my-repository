@@ -1,5 +1,6 @@
 #include<stdio.h>
 #include<stdlib.h>
+#include<string.h>
 
 #include<sys/ipc.h>
 #include<sys/msg.h>
@@ -22,14 +23,25 @@ struct msg_queue mq;
 int key,msqid,i=0;
 
 key =ftok(".",'A');
+if(key == -1){
+perror("ftok");
+exit(1);
+}
 
-msgget(key,IPC_CREAT|0666);
+msqid = msgget(key,IPC_CREAT|0666);
+if(msqid == -1){
+perror("msgget");
+exit(1);
+}
 
 //Fill data to send
 mq.mtype = 1;
 
 printf("Enter some data to send: ");
-fgets(buff, 20, stdin);
+if(fgets(buff, 20, stdin) == NULL){
+perror("fgets");
+exit(1);
+}
 
 mq.mtype = 1;
 strcpy( mq.name, buff);

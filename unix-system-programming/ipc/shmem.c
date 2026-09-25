@@ -15,7 +15,7 @@ void *shm_mem = (void *)0;
   printf("shared mem id: %d\n", shmid);
 
   shm_mem = shmat (shmid, (void *) 0, 0);
-  printf("Shared memory at address: %x\n", (unsigned int)shm_mem);
+  printf("Shared memory at address: %p\n", shm_mem);
 
   shmdt (shm_mem);
   printf("shared memory is detached now\n");

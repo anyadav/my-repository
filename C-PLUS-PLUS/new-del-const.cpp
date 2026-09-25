@@ -9,11 +9,12 @@ int count;
 //contructure, lets allocate memory in constructur. 
 NewDel(){
 arr = new int[10]; //array of 10 integers...while delete have to call like delete[]arr;
-ptr = new int(20); //create memory for integer and initialize the int to value 20, 
+ptr = new int(20); //create memory for integer and initialize the int to value 20,
 			//while memory free simply call delete ptr;
 cout<< *ptr<<endl;
-cout<<arr[0]<<endl;	
-}			
+//NOTE: arr[0] is not printed here since setarr() hasn't run yet -
+//printing it here would just read uninitialized heap memory (garbage)
+}
 
 void setarr(){
 

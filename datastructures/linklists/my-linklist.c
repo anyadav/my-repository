@@ -20,7 +20,7 @@ void insertmid(struct node *ptr, int val);
 
 int main()
 {
-struct node *root,root1;
+struct node *root;
 root=(struct node *)malloc(sizeof(struct node));
 
 root->next = NULL;

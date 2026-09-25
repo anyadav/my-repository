@@ -13,16 +13,17 @@ if(ptr)
 }
 printf("value at q is :%lu\n",*q);
 */
+	size_t len = 1000;
 	char *str;
-        str = (char*) malloc(sizeof(char)*1000);
+        str = (char*) malloc(sizeof(char)*len);
         if(str == NULL)
                 return 1;
-        size_t *length;
-        /* glibc keeps the chunk size in the size_t just before the returned
-           pointer (8 bytes on 64 bit, not 4). The low 3 bits are flags, so
-           mask them off. The size includes malloc's header and padding. */
-        length = (size_t *)(str - sizeof(size_t));
-        printf("Length of str:%zu\n", *length & ~(size_t)7);
+        /* Track the requested size ourselves instead of reading malloc's
+           internal chunk-size header: that header is an allocator
+           implementation detail, not part of the object malloc() returns,
+           so reading the bytes before the pointer is undefined behavior
+           (and is flagged by AddressSanitizer as a heap-buffer-overflow). */
+        printf("Length of str:%zu\n", len);
         free(str);
 
 return 0;

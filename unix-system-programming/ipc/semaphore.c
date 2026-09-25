@@ -31,7 +31,7 @@ perror("semget");
 exit(1);
 }
 else
-printf("semget succeded, semid: %d, arg.val:%d\n", semid,arg.val);
+printf("semget succeded, semid: %d\n", semid);
 
 
 //initialize semaphore to 1

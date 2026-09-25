@@ -20,6 +20,11 @@ wing=emp.wing;
 sal=emp.sal;
 }
 
+//Rule of Three: since a copy constructor is user-defined above, also
+//define copy assignment explicitly instead of relying on the compiler's
+//deprecated implicit one (-Wdeprecated-copy)
+Emp& operator=(const Emp &emp) = default;
+
 //NOTE: if you are defining non default constructors then
 //it will be mandatory to define the default constructor as well
 Emp(){

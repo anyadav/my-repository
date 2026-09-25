@@ -21,7 +21,7 @@ int main ()
 
   pid_t pid[100];
   int i = 0;
-  while (i++ < COUNT)
+  while (i < COUNT)
     {
       pid[i] = fork ();
       if (pid[i] < 0)
@@ -38,7 +38,7 @@ int main ()
 
 	  wait (NULL);
 	}
-
+      i++;
     }
   return 0;
 

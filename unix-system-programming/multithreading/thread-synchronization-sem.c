@@ -34,7 +34,7 @@ main ()
 
 
 //initialize semaphore
-  semid = sem_init (&sem, 0, 0);
+  semid = sem_init (&sem, 0, 1);
   errchk (semid);
 
 
@@ -89,16 +89,18 @@ void *
 thrfun1 (void *arg)
 {
   int count = 0;
-//  if (sem_trywait (&sem) == EAGAIN)
-  err = sem_trywait (&sem);
-if(err < 0)
-    errcount++;
   while (count++ < 1000)
     {
+      /* protect the shrd_val critical section with the semaphore for
+         every increment, instead of trywait/post once outside the loop */
+      err = sem_wait (&sem);
+      if(err < 0)
+        errcount++;
       printf ("1");
       shrd_val++;
+      sem_post (&sem);
     }
-  sem_post (&sem);
+  return NULL;
 }
 
 
@@ -106,30 +108,32 @@ void *
 thrfun2 (void *arg)
 {
   int count = 0;
-  err = sem_trywait (&sem);
-if(err < 0)
-    errcount++;
   while (count++ < 1000)
     {
+      err = sem_wait (&sem);
+      if(err < 0)
+        errcount++;
       printf ("2");
       shrd_val++;
+      sem_post (&sem);
     }
-  sem_post (&sem);
+  return NULL;
 }
 
 void *
 thrfun3 (void *arg)
 {
   int count = 0;
-  err = sem_trywait (&sem);
-if(err < 0)
-    errcount++;
   while (count++ < 1000)
     {
+      err = sem_wait (&sem);
+      if(err < 0)
+        errcount++;
       printf ("3");
       shrd_val++;
+      sem_post (&sem);
     }
-  sem_post (&sem);
+  return NULL;
 }
 
 
@@ -137,15 +141,16 @@ void *
 thrfun4 (void *arg)
 {
   int count = 0;
-  err = sem_trywait (&sem);
-if(err < 0)
-    errcount++;
   while (count++ < 1000)
     {
+      err = sem_wait (&sem);
+      if(err < 0)
+        errcount++;
       printf ("4");
       shrd_val++;
+      sem_post (&sem);
     }
-  sem_post (&sem);
+  return NULL;
 }
 
 
@@ -153,13 +158,14 @@ void *
 thrfun5 (void *arg)
 {
   int count = 0;
-  err = sem_trywait (&sem);
-if(err < 0)
-    errcount++;
   while (count++ < 1000)
     {
+      err = sem_wait (&sem);
+      if(err < 0)
+        errcount++;
       printf ("5");
       shrd_val++;
+      sem_post (&sem);
     }
-  sem_post (&sem);
+  return NULL;
 }

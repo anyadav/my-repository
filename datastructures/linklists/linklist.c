@@ -98,7 +98,7 @@ fast=fast->next->next;
 if(slow==fast)
 {
 printf("Loop detected slow->data:[%d], fast->data:[%d] \n", slow->data, fast->data);
-printf("Loop detected slow:[%u], fast:[%u] \n", slow, fast);
+printf("Loop detected slow:[%p], fast:[%p] \n", (void *)slow, (void *)fast);
 exit(0);
 }
 
@@ -315,5 +315,5 @@ deletelist (NODE head)
   deletelist (head->next);
 //  head->next->next = (NODE) 0;
   free (head);
-  return (head);
+  return (NULL);	/* head was just freed above, so never return it */
 }

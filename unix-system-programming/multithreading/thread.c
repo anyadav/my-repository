@@ -89,6 +89,7 @@ thrfun1 (void *arg)
 	  sleep (1);
 	}
     }
+  return NULL;
 }
 
 
@@ -111,4 +112,5 @@ thrfun2 (void *arg)
 	  sleep (1);
 	}
     }
+  return NULL;
 }

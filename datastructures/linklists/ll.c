@@ -1,10 +1,10 @@
-//#include<stdlib.c>
+#include<stdlib.h>
 #include<stdio.h>
 #include "amar.h"
 
 int main()
 {
-struct node *root,root1;
+struct node *root;
 root=(struct node *)malloc(sizeof(struct node));
 
 root->next = NULL;

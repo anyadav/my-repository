@@ -108,6 +108,7 @@ thrfun1 (void *arg)
 //        else{sleep(1);}
 //      sem_post(&sem);
     }
+  return NULL;
 }
 
 
@@ -128,4 +129,5 @@ thrfun2 (void *arg)
 //        else{sleep(1);}
 //      sem_post(&sem);
     }
+  return NULL;
 }
