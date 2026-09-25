@@ -15,9 +15,8 @@ data = shmat(shmid, (void *)0,0);
 
 printf("\n %s\n",(char *)data);
 
-data +=10;
-
-printf("\n %s\n",(char *)data);
+/* read at offset 10 without moving data, so shmdt gets the attach address */
+printf("\n %s\n",(char *)data + 10);
 shmdt(data);
 
 /* reader runs last in this reader/writer pair, so it releases the

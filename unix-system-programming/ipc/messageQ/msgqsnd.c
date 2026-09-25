@@ -62,7 +62,8 @@ scanf("%d\n",&(mq.tel));
 */
 
 
-msgsnd(msqid,&mq,sizeof(mq),0);
+/* msgsz counts only the payload after mtype, not the whole struct */
+msgsnd(msqid,&mq,sizeof(mq) - sizeof(long int),0);
 printf("\n");
 return 0;
 }

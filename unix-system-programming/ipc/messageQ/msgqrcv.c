@@ -34,7 +34,8 @@ key =ftok(".",'A');
 msgid = msgget(key,IPC_CREAT|0666);
 
 
-msgrcv(msgid, (void *)&mq, BUFSIZ, msg_to_rcv,0);
+/* msgsz is the payload size after mtype; BUFSIZ overflowed mq */
+msgrcv(msgid, (void *)&mq, sizeof(mq) - sizeof(long int), msg_to_rcv,0);
 printf("You wrote:  %s\n",mq.name);
 
 msgctl(msgid,IPC_RMID,0);

@@ -14,7 +14,8 @@ int semid;
 
 int sem;
 
-struct sembuf sb = {0, 1,0};
+/* sem_op -1 acquires (locks) the semaphore; +1 later releases it */
+struct sembuf sb = {0, -1,0};
 
 
 union semun {

@@ -5,3 +5,10 @@
 *.out
 unix-system-programming/ipc/messageQ/msgqrcv
 unix-system-programming/ipc/messageQ/msgqsnd
+unix-system-programming/multithreading/thrd
+unix-system-programming/multithreading/thread
+unix-system-programming/multithreading/thread-messagepassing
+unix-system-programming/multithreading/thread-cancellation
+unix-system-programming/multithreading/thread-synchronization-sem
+unix-system-programming/multithreading/threads-ud/thrd
+unix-system-programming/multithreading/threads-ud/thread1
